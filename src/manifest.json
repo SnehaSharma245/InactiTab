@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "InactiTab Manager",
+  "version": "2.0.0",
+  "description": "Manage inactive tabs with smart whitelist and customizable settings",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "notifications"
+  ],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "InactiTab Manager"
+  }
+}
