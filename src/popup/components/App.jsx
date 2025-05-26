@@ -3,14 +3,13 @@ import Header from "./Header";
 import Navigation from "./Navigation";
 import WhitelistSection from "./WhitelistSection";
 import SettingsSection from "./SettingsSection";
-import InactiveSection from "./InactiveSection";
+
 import { useTheme } from "../hooks/useTheme";
 import { useSettings } from "../hooks/useSettings";
 import { useWhitelist } from "../hooks/useWhitelist";
 
 const App = () => {
   const [currentSection, setCurrentSection] = useState("whitelist");
-  const [showInactiveSection, setShowInactiveSection] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const { settings, updateSettings, saveSettings } = useSettings();
@@ -25,11 +24,6 @@ const App = () => {
     // Check if popup was opened for an inactive tab
     const urlParams = new URLSearchParams(window.location.search);
     const isInactive = urlParams.get("inactive") === "true";
-
-    if (isInactive) {
-      setShowInactiveSection(true);
-      setCurrentSection("inactive");
-    }
   }, []);
 
   const handleSectionChange = (section) => {
@@ -45,15 +39,10 @@ const App = () => {
       <Header theme={theme} onToggleTheme={toggleTheme} />
       <Navigation
         currentSection={currentSection}
-        showInactiveSection={showInactiveSection}
         onSectionChange={handleSectionChange}
       />
 
       <div className="p-5">
-        {currentSection === "inactive" && showInactiveSection && (
-          <InactiveSection onWhitelistTab={whitelistCurrentTab} />
-        )}
-
         {currentSection === "whitelist" && (
           <WhitelistSection
             whitelist={whitelist}
