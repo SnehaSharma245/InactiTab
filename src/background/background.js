@@ -122,21 +122,35 @@ class InactiTabBackground {
     this.tabTimers.forEach((timer, tabId) => {
       if (tabId !== exceptTabId) {
         // Check if tab should be tracked before resuming timer
-        chrome.tabs.get(tabId).then((tab) => {
-          if (
-            !this.isWhitelisted(tab.url) &&
-            !this.isPinnedAndWhitelisted(tab)
-          ) {
-            this.resumeTimer(tabId);
-            console.log(`▶️ Resumed timer for inactive tab: ${tabId}`);
-          } else {
-            console.log(
-              `🛡️ Skipping whitelisted tab: ${tabId} - ${tab.url}`
-            );
-          }
-        }).catch(() => {
-          // Tab might not exist anymore
-        });
+        chrome.tabs
+          .get(tabId)
+          .then((tab) => {
+            // Only skip if URL is whitelisted OR (tab is pinned AND whitelistPinned setting is enabled)
+            const isUrlWhitelisted = this.isWhitelisted(tab.url);
+            const isPinnedAndProtected =
+              this.settings.whitelistPinned && tab.pinned;
+
+            if (!isUrlWhitelisted && !isPinnedAndProtected) {
+              this.resumeTimer(tabId);
+              console.log(
+                `▶️ Resumed timer for inactive tab: ${tabId} (pinned: ${tab.pinned}, whitelistPinned: ${this.settings.whitelistPinned})`
+              );
+            } else {
+              if (isUrlWhitelisted) {
+                console.log(
+                  `🛡️ Skipping URL whitelisted tab: ${tabId} - ${tab.url}`
+                );
+              }
+              if (isPinnedAndProtected) {
+                console.log(
+                  `📌 Skipping pinned tab (protected): ${tabId} - ${tab.title}`
+                );
+              }
+            }
+          })
+          .catch(() => {
+            // Tab might not exist anymore
+          });
       }
     });
   }
@@ -255,8 +269,15 @@ class InactiTabBackground {
         try {
           const tab = await chrome.tabs.get(tabId);
 
-          if (this.isWhitelisted(tab.url) || this.isPinnedAndWhitelisted(tab)) {
-            console.log(`🛡️ Tab ${tabId} is now whitelisted, stopping timer`);
+          // Check if tab should be protected from tracking
+          const isUrlWhitelisted = this.isWhitelisted(tab.url);
+          const isPinnedAndProtected =
+            this.settings.whitelistPinned && tab.pinned;
+
+          if (isUrlWhitelisted || isPinnedAndProtected) {
+            console.log(
+              `🛡️ Tab ${tabId} is now protected, stopping timer (URL whitelisted: ${isUrlWhitelisted}, Pinned protected: ${isPinnedAndProtected})`
+            );
             clearInterval(interval);
             timer.interval = null;
             this.markTabActive(tabId);
@@ -266,7 +287,7 @@ class InactiTabBackground {
           console.log(
             `⏱️ Tab "${tab.title}" (${tabId}) - Total elapsed: ${Math.floor(
               currentElapsed / 1000
-            )}s`
+            )}s (pinned: ${tab.pinned})`
           );
         } catch (error) {
           console.log(
@@ -340,9 +361,39 @@ class InactiTabBackground {
 
   handleTabUpdated(tabId, changeInfo, tab) {
     if (changeInfo.url) {
-      if (this.isWhitelisted(tab.url) || this.isPinnedAndWhitelisted(tab)) {
+      // Check if tab should be protected after URL change
+      const isUrlWhitelisted = this.isWhitelisted(tab.url);
+      const isPinnedAndProtected = this.settings.whitelistPinned && tab.pinned;
+
+      if (isUrlWhitelisted || isPinnedAndProtected) {
         this.pauseAndResetTimer(tabId);
         this.markTabActive(tabId);
+        console.log(
+          `🔄 Tab ${tabId} updated - now protected (URL: ${isUrlWhitelisted}, Pinned: ${isPinnedAndProtected})`
+        );
+      }
+    }
+
+    // Handle pinned status change
+    if (changeInfo.pinned !== undefined) {
+      const isPinnedAndProtected =
+        this.settings.whitelistPinned && changeInfo.pinned;
+      const isUrlWhitelisted = this.isWhitelisted(tab.url);
+
+      if (isPinnedAndProtected || isUrlWhitelisted) {
+        this.pauseAndResetTimer(tabId);
+        this.markTabActive(tabId);
+        console.log(
+          `📌 Tab ${tabId} pinned status changed - now protected: ${isPinnedAndProtected}`
+        );
+      } else if (
+        !changeInfo.pinned &&
+        !isUrlWhitelisted &&
+        tabId !== this.activeTabId
+      ) {
+        // Tab was unpinned and not whitelisted, start tracking it
+        this.resumeTimer(tabId);
+        console.log(`📌 Tab ${tabId} unpinned - starting timer`);
       }
     }
   }
@@ -395,6 +446,11 @@ class InactiTabBackground {
         this.settings = message.settings;
         this.saveSettings();
         this.INACTIVE_TIMEOUT = this.getTimerDurationMs();
+        // Refresh timers when whitelistPinned setting changes
+        this.refreshAllTimers();
+        console.log(
+          `⚙️ Settings updated - whitelistPinned: ${this.settings.whitelistPinned}`
+        );
         break;
 
       case "updateWhitelist":
@@ -449,6 +505,9 @@ class InactiTabBackground {
   }
 
   isPinnedAndWhitelisted(tab) {
+    // This method should only return true if BOTH conditions are met:
+    // 1. The setting whitelistPinned is enabled
+    // 2. The tab is actually pinned
     return this.settings.whitelistPinned && tab.pinned;
   }
 
