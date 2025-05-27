@@ -52,12 +52,28 @@ const WhitelistSection = ({
   };
 
   const handleTabWhitelistToggle = async (tab, isChecked) => {
-    if (isChecked) {
-      await onAddToWhitelist(tab.url); // Use full URL instead of origin
-    } else {
-      await onRemoveFromWhitelist(tab.url);
+    try {
+      // Immediately update the local state to reflect the change
+      setOpenedTabs((prevTabs) =>
+        prevTabs.map((t) =>
+          t.id === tab.id ? { ...t, isWhitelisted: isChecked } : t
+        )
+      );
+
+      if (isChecked) {
+        await onAddToWhitelist(tab.url);
+      } else {
+        await onRemoveFromWhitelist(tab.url);
+      }
+    } catch (error) {
+      console.error("Error toggling whitelist:", error);
+      // Revert the optimistic update on error
+      setOpenedTabs((prevTabs) =>
+        prevTabs.map((t) =>
+          t.id === tab.id ? { ...t, isWhitelisted: !isChecked } : t
+        )
+      );
     }
-    setTimeout(loadOpenedTabs, 100);
   };
 
   const handleAddUrl = () => {
@@ -145,47 +161,22 @@ const WhitelistSection = ({
                   className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={tab.isWhitelisted}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleTabWhitelistToggle(tab, e.target.checked);
-                      }}
-                      className="mr-2 w-3 h-3 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-1 dark:bg-dark-input dark:border-dark-border"
-                    />
                     <div className="flex items-center flex-1 min-w-0">
                       <div className="relative mr-2 flex-shrink-0">
                         {tab.favIconUrl ? (
                           <img
                             src={tab.favIconUrl}
                             alt=""
-                            className={`w-3 h-3 rounded-full ${
-                              tab.isWhitelisted
-                                ? "ring-1 ring-green-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
-                                : ""
-                            }`}
+                            className="w-3 h-3 rounded-full"
                           />
                         ) : (
-                          <div
-                            className={`w-3 h-3 bg-gray-300 rounded-full flex items-center justify-center ${
-                              tab.isWhitelisted
-                                ? "ring-1 ring-green-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
-                                : ""
-                            }`}
-                          >
+                          <div className="w-3 h-3 bg-gray-300 rounded-full flex items-center justify-center">
                             <span className="text-xs">🌐</span>
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-xs font-medium truncate ${
-                            tab.isWhitelisted
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-gray-900 dark:text-white"
-                          }`}
-                        >
+                        <p className="text-xs font-medium truncate text-gray-900 dark:text-white">
                           {tab.title}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate opacity-75">
@@ -193,6 +184,24 @@ const WhitelistSection = ({
                         </p>
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTabWhitelistToggle(tab, !tab.isWhitelisted);
+                      }}
+                      className={`ml-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 hover:scale-110 ${
+                        tab.isWhitelisted
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : "bg-green-500 text-white hover:bg-green-600"
+                      }`}
+                      title={
+                        tab.isWhitelisted
+                          ? "Remove from whitelist"
+                          : "Add to whitelist"
+                      }
+                    >
+                      {tab.isWhitelisted ? "−" : "+"}
+                    </button>
                   </div>
                 </div>
               ))}
