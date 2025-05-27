@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from "react";
+import {
+  Trash2,
+  RotateCcw,
+  X,
+  ExternalLink,
+  FileText,
+  RefreshCw,
+} from "lucide-react";
 
 const AutoclosedSection = () => {
   const [autoclosedTabs, setAutoclosedTabs] = useState([]);
@@ -21,10 +29,18 @@ const AutoclosedSection = () => {
       const openedTabs = await chrome.tabs.query({});
       const openedUrls = new Set(openedTabs.map((tab) => tab.url));
 
-      // Remove duplicates and already opened tabs
+      // Remove duplicates and already opened tabs, also clean titles
       const filteredTabs = (data.autoclosedTabs || []).reduce((acc, tab) => {
         if (!openedUrls.has(tab.url) && !acc.some((t) => t.url === tab.url)) {
-          acc.push(tab);
+          // Clean title from sleep and lock icons
+          const cleanTitle = tab.title
+            .replace(/^💤\s*/, "")
+            .replace(/^🔒\s*/, "")
+            .trim();
+          acc.push({
+            ...tab,
+            title: cleanTitle,
+          });
         }
         return acc;
       }, []);
@@ -79,14 +95,15 @@ const AutoclosedSection = () => {
   return (
     <div className="animate-fade-in">
       <div className="mb-4 flex justify-between items-center">
-        <h3 className="text-base font-medium flex items-center text-gray-800 dark:text-white">
-          <span className="mr-2 text-sm">🗑️</span>Auto-closed Tabs
+        <h3 className="gradient-text text-base font-medium flex items-center">
+          <Trash2 className="mr-2 w-4 h-4" />
+          Auto-closed Tabs
         </h3>
         <div className="flex items-center space-x-2">
           {autoclosedTabs.length > 0 && (
             <button
               onClick={() => setSelectMode(!selectMode)}
-              className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
+              className="modern-button !py-1 !px-2"
             >
               {selectMode ? "Cancel" : "Select"}
             </button>
@@ -94,12 +111,12 @@ const AutoclosedSection = () => {
           <button
             onClick={loadAutoclosedTabs}
             disabled={isRefreshing}
-            className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors flex items-center space-x-1"
+            className="modern-button !py-1 !px-2"
             title="Refresh list"
           >
-            <span className={`transform ${isRefreshing ? "animate-spin" : ""}`}>
-              ↻
-            </span>
+            <RefreshCw
+              className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`}
+            />
           </button>
         </div>
       </div>
@@ -128,9 +145,7 @@ const AutoclosedSection = () => {
       <div>
         {autoclosedTabs.length === 0 ? (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            <div className="mb-2">
-              <span className="text-2xl">📝</span>
-            </div>
+            <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
             <p className="text-sm font-medium dark:text-white">
               No auto-closed tabs
             </p>
@@ -141,10 +156,7 @@ const AutoclosedSection = () => {
         ) : (
           <div className="space-y-2">
             {autoclosedTabs.map((tab) => (
-              <div
-                key={tab.url}
-                className="flex items-center p-2 bg-gray-50 rounded border border-gray-200 transition-all duration-200 hover:border-primary-500 hover:bg-gray-100 dark:bg-dark-card dark:border-dark-border dark:hover:bg-dark-hover group"
-              >
+              <div key={tab.url} className="modern-card p-2 group">
                 {selectMode && (
                   <input
                     type="checkbox"
@@ -191,17 +203,17 @@ const AutoclosedSection = () => {
                   <div className="flex items-center space-x-2 ml-2">
                     <button
                       onClick={() => handleReopen(tab)}
-                      className="text-xs text-primary-600 hover:text-primary-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-blue-500/20 rounded"
                       title="Reopen tab"
                     >
-                      ↗️
+                      <ExternalLink className="w-3 h-3 text-blue-400" />
                     </button>
                     <button
                       onClick={() => handleDelete(tab)}
-                      className="text-xs text-danger-600 hover:text-danger-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
                       title="Remove from history"
                     >
-                      ✕
+                      <X className="w-3 h-3 text-red-400" />
                     </button>
                   </div>
                 )}
