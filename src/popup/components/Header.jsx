@@ -1,21 +1,17 @@
 import React from "react";
 
-const Header = ({ theme, onToggleTheme }) => {
+const Header = () => {
   return (
-    <div
-      className={`px-4 py-3 flex justify-between items-center border-b ${
-        theme === "dark"
-          ? "bg-gray-800 border-gray-700"
-          : "bg-blue-500 border-gray-200"
-      }`}
-    >
-      <h1 className="text-sm font-semibold text-white">InactiTab Manager</h1>
-      <button
-        className="bg-white/20 border border-white/30 rounded-full px-2 py-1 cursor-pointer transition-all duration-300 text-xs text-white hover:bg-white/30 hover:-translate-y-0.5"
-        onClick={onToggleTheme}
-      >
-        {theme === "light" ? "🌙" : "☀️"}
-      </button>
+    <div className="bg-gradient-dark border-b border-dark-border relative overflow-hidden">
+      <div className="px-4 py-3 flex items-center gap-3 relative z-10">
+        <img
+          src="../../icons/favicon.png"
+          alt="InactiTab"
+          className="w-8 h-8"
+        />
+        <h1 className="brand-title">InactiTab</h1>
+      </div>
+      <div className="absolute inset-0 bg-gradient-shine animate-shimmer"></div>
     </div>
   );
 };
