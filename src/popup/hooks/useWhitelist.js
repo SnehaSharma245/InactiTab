@@ -21,19 +21,31 @@ export const useWhitelist = () => {
 
   const addToWhitelist = async (url) => {
     try {
-      const origin = new URL(url).origin;
+      const origin =
+        typeof url === "string" && url.startsWith("http")
+          ? new URL(url).origin
+          : url; // url is already an origin
+
       if (!whitelist.includes(origin)) {
         const newWhitelist = [...whitelist, origin];
         setWhitelist(newWhitelist);
         await saveWhitelist(newWhitelist);
+        return true;
       }
+      return false;
     } catch (e) {
       console.error("Invalid URL:", url);
+      return false;
     }
   };
 
   const removeFromWhitelist = async (url) => {
-    const newWhitelist = whitelist.filter((item) => item !== url);
+    const origin =
+      typeof url === "string" && url.startsWith("http")
+        ? new URL(url).origin
+        : url; // url is already an origin
+
+    const newWhitelist = whitelist.filter((item) => item !== origin);
     setWhitelist(newWhitelist);
     await saveWhitelist(newWhitelist);
   };
