@@ -10,6 +10,7 @@ let settings = {
   tabThreshold: 10,
   whitelistPinned: true,
   autoClose: false,
+  historyLimit: 10, // Add this line
 };
 
 // Initialize the extension
@@ -60,30 +61,112 @@ function setupEventListeners() {
   });
 
   // Tab events
-  chrome.tabs.onActivated.addListener((activeInfo) => {
-    handleTabActivated(activeInfo);
-  });
-
-  chrome.tabs.onCreated.addListener((tab) => {
-    handleTabCreated(tab);
-  });
-
-  chrome.tabs.onRemoved.addListener((tabId) => {
-    handleTabRemoved(tabId);
-  });
-
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    handleTabUpdated(tabId, changeInfo, tab);
-  });
+  chrome.tabs.onActivated.addListener(handleTabActivated);
+  chrome.tabs.onCreated.addListener(handleTabCreated);
+  chrome.tabs.onRemoved.addListener(handleTabRemoved);
+  chrome.tabs.onUpdated.addListener(handleTabUpdated);
 
   // Extension installed/startup
-  chrome.runtime.onStartup.addListener(() => {
-    createContextMenu();
+  chrome.runtime.onStartup.addListener(createContextMenu);
+  chrome.runtime.onInstalled.addListener(createContextMenu);
+}
+
+async function handleTabActivated(activeInfo) {
+  const newActiveTabId = activeInfo.tabId;
+  try {
+    const tab = await chrome.tabs.get(newActiveTabId);
+    console.log(`🔀 Tab switched to: "${tab.title}" (${newActiveTabId})`);
+  } catch (error) {
+    console.log(`🔀 Tab switched to: ${newActiveTabId}`);
+  }
+
+  // Update inactive state and refresh content
+  await refreshTabContent(newActiveTabId);
+
+  console.log(`⏸️ Pausing all existing timers`);
+  tabTimers.forEach((timer, tabId) => {
+    if (timer.interval && !timer.isPaused && tabId !== newActiveTabId) {
+      pauseTimer(tabId);
+    }
   });
 
-  chrome.runtime.onInstalled.addListener(() => {
-    createContextMenu();
+  pauseAndResetTimer(newActiveTabId);
+  startAllInactiveTimers(newActiveTabId);
+
+  activeTabId = newActiveTabId;
+  console.log(`✅ Active tab updated to: ${newActiveTabId}`);
+}
+
+function handleTabCreated(tab) {
+  console.log(`➕ New tab created: ${tab.id} - "${tab.title || "Loading..."}"`);
+  tabTimers.set(tab.id, {
+    interval: null,
+    startTime: null,
+    elapsedTime: 0,
+    isPaused: true,
   });
+
+  // Check for whitelisted status after a brief delay
+  setTimeout(() => {
+    chrome.tabs
+      .get(tab.id)
+      .then((updatedTab) => {
+        if (isWhitelisted(updatedTab.url)) {
+          updateTabIcon(tab.id, true);
+        }
+      })
+      .catch(() => {});
+  }, 1000);
+}
+
+function handleTabUpdated(tabId, changeInfo, tab) {
+  if (changeInfo.url) {
+    const isUrlWhitelisted = isWhitelisted(tab.url);
+    const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
+
+    updateTabIcon(tabId, isUrlWhitelisted);
+
+    if (isUrlWhitelisted || isPinnedAndProtected) {
+      pauseAndResetTimer(tabId);
+      markTabActive(tabId);
+      console.log(
+        `🔄 Tab ${tabId} updated - now protected (URL: ${isUrlWhitelisted}, Pinned: ${isPinnedAndProtected})`
+      );
+    }
+  }
+
+  if (changeInfo.pinned !== undefined) {
+    const isPinnedAndProtected = settings.whitelistPinned && changeInfo.pinned;
+    const isUrlWhitelisted = isWhitelisted(tab.url);
+
+    if (isPinnedAndProtected || isUrlWhitelisted) {
+      pauseAndResetTimer(tabId);
+      markTabActive(tabId);
+      console.log(
+        `📌 Tab ${tabId} pinned status changed - now protected: ${isPinnedAndProtected}`
+      );
+    } else if (
+      !changeInfo.pinned &&
+      !isUrlWhitelisted &&
+      tabId !== activeTabId
+    ) {
+      resumeTimer(tabId);
+      console.log(`📌 Tab ${tabId} unpinned - starting timer`);
+    }
+  }
+}
+
+function handleTabRemoved(tabId) {
+  if (tabTimers.has(tabId)) {
+    const timer = tabTimers.get(tabId);
+    if (timer.interval) {
+      clearInterval(timer.interval);
+    }
+    tabTimers.delete(tabId);
+  }
+
+  inactiveTabs.delete(tabId);
+  console.log(`❌ Tab closed and timer removed: ${tabId}`);
 }
 
 function createContextMenu() {
@@ -157,7 +240,36 @@ function markTabInactive(tabId) {
   // Check if auto-close is enabled
   if (settings.autoClose) {
     console.log(`🔥 Auto-closing inactive tab: ${tabId}`);
-    chrome.tabs.remove(tabId);
+
+    // Save tab info before closing
+    chrome.tabs.get(tabId, async (tab) => {
+      try {
+        const { autoclosedTabs = [] } = await chrome.storage.local.get(
+          "autoclosedTabs"
+        );
+
+        // Add new tab to history
+        const tabInfo = {
+          url: tab.url,
+          title: tab.title,
+          favIconUrl: tab.favIconUrl,
+          timestamp: Date.now(),
+        };
+
+        // Remove duplicates and trim to historyLimit
+        const updatedTabs = [tabInfo, ...autoclosedTabs]
+          .filter(
+            (tab, index, self) =>
+              index === self.findIndex((t) => t.url === tab.url)
+          )
+          .slice(0, settings.historyLimit);
+
+        await chrome.storage.local.set({ autoclosedTabs: updatedTabs });
+        chrome.tabs.remove(tabId);
+      } catch (error) {
+        console.error("Error saving tab to history:", error);
+      }
+    });
     return;
   }
 
@@ -166,29 +278,33 @@ function markTabInactive(tabId) {
     .executeScript({
       target: { tabId: tabId },
       func: () => {
-        let inactiveIcon = document.getElementById("inactive-tab-icon");
-        if (!inactiveIcon) {
-          inactiveIcon = document.createElement("div");
-          inactiveIcon.id = "inactive-tab-icon";
-          inactiveIcon.innerHTML = "⚠️";
-          inactiveIcon.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff4444;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 10000;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-          `;
-          document.body.appendChild(inactiveIcon);
-        }
+        try {
+          let inactiveIcon = document.getElementById("inactive-tab-icon");
+          if (!inactiveIcon) {
+            inactiveIcon = document.createElement("div");
+            inactiveIcon.id = "inactive-tab-icon";
+            inactiveIcon.innerHTML = "⚠️";
+            inactiveIcon.style.cssText = `
+              position: fixed;
+              top: 10px;
+              right: 10px;
+              background: #ff4444;
+              color: white;
+              padding: 5px 10px;
+              border-radius: 5px;
+              font-size: 14px;
+              z-index: 10000;
+              font-weight: bold;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            `;
+            document.body.appendChild(inactiveIcon);
+          }
 
-        if (!document.title.includes("⚠️ INACTIVE")) {
-          document.title = `⚠️ INACTIVE - ${document.title}`;
+          if (!document.title.includes("⚠️ INACTIVE")) {
+            document.title = `⚠️ INACTIVE - ${document.title}`;
+          }
+        } catch (err) {
+          console.error("Error adding inactive icon:", err);
         }
       },
     })
@@ -207,13 +323,17 @@ function markTabActive(tabId) {
       .executeScript({
         target: { tabId: tabId },
         func: () => {
-          const inactiveIcon = document.getElementById("inactive-tab-icon");
-          if (inactiveIcon) {
-            inactiveIcon.remove();
-          }
+          try {
+            const inactiveIcon = document.getElementById("inactive-tab-icon");
+            if (inactiveIcon && inactiveIcon.parentNode) {
+              inactiveIcon.remove();
+            }
 
-          if (document.title.includes("⚠️ INACTIVE - ")) {
-            document.title = document.title.replace("⚠️ INACTIVE - ", "");
+            if (document.title && document.title.includes("⚠️ INACTIVE - ")) {
+              document.title = document.title.replace("⚠️ INACTIVE - ", "");
+            }
+          } catch (err) {
+            console.error("Error removing inactive icon:", err);
           }
         },
       })
@@ -302,88 +422,166 @@ function resumeTimer(tabId) {
   }
 }
 
-async function handleTabActivated(activeInfo) {
-  const newActiveTabId = activeInfo.tabId;
+function updateTabIcon(tabId, isWhitelisted) {
   try {
-    const tab = await chrome.tabs.get(newActiveTabId);
-    console.log(`🔀 Tab switched to: "${tab.title}" (${newActiveTabId})`);
+    if (isWhitelisted) {
+      // Inject lock icon in page
+      chrome.scripting
+        .executeScript({
+          target: { tabId: tabId },
+          func: () => {
+            try {
+              let lockIcon = document.getElementById("whitelist-lock-icon");
+              if (!lockIcon) {
+                lockIcon = document.createElement("div");
+                lockIcon.id = "whitelist-lock-icon";
+                lockIcon.innerHTML = "🔒";
+                lockIcon.style.cssText = `
+                  position: fixed;
+                  top: 10px;
+                  left: 10px;
+                  background: #27ae60;
+                  color: white;
+                  padding: 5px 10px;
+                  border-radius: 5px;
+                  font-size: 14px;
+                  z-index: 10000;
+                  font-weight: bold;
+                  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                  border: 2px solid #229954;
+                `;
+                document.body.appendChild(lockIcon);
+              }
+
+              // Update tab title to show lock
+              if (!document.title.includes("🔒")) {
+                document.title = `🔒 ${document.title}`;
+              }
+
+              // Also remove inactive icon if present
+              const inactiveIcon = document.getElementById("inactive-tab-icon");
+              if (inactiveIcon && inactiveIcon.parentNode) {
+                inactiveIcon.remove();
+              }
+
+              if (document.title && document.title.includes("⚠️ INACTIVE - ")) {
+                document.title = document.title.replace("⚠️ INACTIVE - ", "");
+              }
+            } catch (err) {
+              console.error("Error updating tab icon:", err);
+            }
+          },
+        })
+        .catch((error) => {
+          console.log(`❌ Could not inject lock icon for tab ${tabId}:`, error);
+        });
+
+      // Add green border around favicon in browser tab
+      addFaviconBorder(tabId);
+    } else {
+      // Remove lock icon from page
+      chrome.scripting
+        .executeScript({
+          target: { tabId: tabId },
+          func: () => {
+            const lockIcon = document.getElementById("whitelist-lock-icon");
+            if (lockIcon) {
+              lockIcon.remove();
+            }
+
+            // Remove lock from title
+            if (document.title.includes("🔒 ")) {
+              document.title = document.title.replace("🔒 ", "");
+            }
+          },
+        })
+        .catch((error) => {
+          console.log(`❌ Could not remove lock icon for tab ${tabId}:`, error);
+        });
+
+      // Remove green border from favicon
+      removeFaviconBorder(tabId);
+    }
   } catch (error) {
-    console.log(`🔀 Tab switched to: ${newActiveTabId}`);
+    console.log(`Could not update icon for tab ${tabId}:`, error);
   }
-
-  console.log(`⏸️ Pausing all existing timers`);
-  tabTimers.forEach((timer, tabId) => {
-    if (timer.interval && !timer.isPaused && tabId !== newActiveTabId) {
-      pauseTimer(tabId);
-    }
-  });
-
-  pauseAndResetTimer(newActiveTabId);
-  startAllInactiveTimers(newActiveTabId);
-
-  activeTabId = newActiveTabId;
-  console.log(`✅ Active tab updated to: ${newActiveTabId}`);
 }
 
-function handleTabCreated(tab) {
-  console.log(`➕ New tab created: ${tab.id} - "${tab.title || "Loading..."}"`);
-  tabTimers.set(tab.id, {
-    interval: null,
-    startTime: null,
-    elapsedTime: 0,
-    isPaused: true,
-  });
+function addFaviconBorder(tabId) {
+  chrome.scripting
+    .executeScript({
+      target: { tabId: tabId },
+      func: () => {
+        // Add CSS to create green border around favicon in browser tab
+        let style = document.getElementById("whitelist-favicon-style");
+        if (!style) {
+          style = document.createElement("style");
+          style.id = "whitelist-favicon-style";
+          style.textContent = `
+            /* This won't directly affect browser tab favicon, but we can try other methods */
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Try to modify favicon with green border
+        const favicon = document.querySelector(
+          'link[rel="icon"], link[rel="shortcut icon"]'
+        );
+        if (favicon) {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const img = new Image();
+
+          img.onload = function () {
+            canvas.width = img.width + 6;
+            canvas.height = img.height + 6;
+
+            // Draw green border
+            ctx.fillStyle = "#27ae60";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw original favicon
+            ctx.drawImage(img, 3, 3);
+
+            // Update favicon
+            favicon.href = canvas.toDataURL();
+          };
+
+          img.src = favicon.href;
+        }
+      },
+    })
+    .catch((error) => {
+      console.log(`❌ Could not add favicon border for tab ${tabId}:`, error);
+    });
 }
 
-function handleTabRemoved(tabId) {
-  if (tabTimers.has(tabId)) {
-    const timer = tabTimers.get(tabId);
-    if (timer.interval) {
-      clearInterval(timer.interval);
-    }
-    tabTimers.delete(tabId);
-  }
+function removeFaviconBorder(tabId) {
+  chrome.scripting
+    .executeScript({
+      target: { tabId: tabId },
+      func: () => {
+        // Remove the style
+        const style = document.getElementById("whitelist-favicon-style");
+        if (style) {
+          style.remove();
+        }
 
-  inactiveTabs.delete(tabId);
-  console.log(`❌ Tab closed and timer removed: ${tabId}`);
-}
-
-function handleTabUpdated(tabId, changeInfo, tab) {
-  if (changeInfo.url) {
-    // Check if tab should be protected after URL change
-    const isUrlWhitelisted = isWhitelisted(tab.url);
-    const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
-
-    if (isUrlWhitelisted || isPinnedAndProtected) {
-      pauseAndResetTimer(tabId);
-      markTabActive(tabId);
+        // Try to restore original favicon (this is limited by browser security)
+        const favicon = document.querySelector(
+          'link[rel="icon"], link[rel="shortcut icon"]'
+        );
+        if (favicon && favicon.dataset.originalHref) {
+          favicon.href = favicon.dataset.originalHref;
+        }
+      },
+    })
+    .catch((error) => {
       console.log(
-        `🔄 Tab ${tabId} updated - now protected (URL: ${isUrlWhitelisted}, Pinned: ${isPinnedAndProtected})`
+        `❌ Could not remove favicon border for tab ${tabId}:`,
+        error
       );
-    }
-  }
-
-  // Handle pinned status change
-  if (changeInfo.pinned !== undefined) {
-    const isPinnedAndProtected = settings.whitelistPinned && changeInfo.pinned;
-    const isUrlWhitelisted = isWhitelisted(tab.url);
-
-    if (isPinnedAndProtected || isUrlWhitelisted) {
-      pauseAndResetTimer(tabId);
-      markTabActive(tabId);
-      console.log(
-        `📌 Tab ${tabId} pinned status changed - now protected: ${isPinnedAndProtected}`
-      );
-    } else if (
-      !changeInfo.pinned &&
-      !isUrlWhitelisted &&
-      tabId !== activeTabId
-    ) {
-      // Tab was unpinned and not whitelisted, start tracking it
-      resumeTimer(tabId);
-      console.log(`📌 Tab ${tabId} unpinned - starting timer`);
-    }
-  }
+    });
 }
 
 async function whitelistTab(tab) {
@@ -401,26 +599,29 @@ async function whitelistTab(tab) {
       return;
     }
 
-    const url = new URL(tab.url).origin;
-    if (!whitelist.includes(url)) {
-      whitelist.push(url);
+    // Use full URL instead of just origin
+    const fullUrl = tab.url;
+    if (!whitelist.includes(fullUrl)) {
+      whitelist.push(fullUrl);
       saveWhitelist();
 
       pauseAndResetTimer(tab.id);
       markTabActive(tab.id);
 
+      updateTabIcon(tab.id, true);
+
       chrome.notifications.create({
         type: "basic",
         iconUrl: "icons/icon48.png",
         title: "Tab Whitelisted",
-        message: `${url} has been added to whitelist`,
+        message: `${fullUrl} has been added to whitelist`,
       });
     } else {
       chrome.notifications.create({
         type: "basic",
-        iconUrl: "icons/icon48.png",
+        iconUrl: "icon48.png",
         title: "Already Whitelisted",
-        message: `${url} is already in whitelist`,
+        message: `${fullUrl} is already in whitelist`,
       });
     }
   } catch (error) {
@@ -485,8 +686,18 @@ function refreshAllTimers() {
 function isWhitelisted(url) {
   if (!url) return false;
   try {
-    const origin = new URL(url).origin;
-    return whitelist.includes(origin);
+    // Check both exact URL match and origin match
+    return (
+      whitelist.includes(url) ||
+      whitelist.some((whitelistedUrl) => {
+        try {
+          const whitelistedOrigin = new URL(whitelistedUrl).origin;
+          return whitelistedOrigin === new URL(url).origin;
+        } catch {
+          return false;
+        }
+      })
+    );
   } catch (error) {
     return false;
   }
@@ -558,3 +769,43 @@ function saveWhitelist() {
 
 // Initialize the extension when script loads
 init();
+
+// Before a tab is activated, check if we need to refresh its content
+function refreshTabContent(tabId) {
+  if (inactiveTabs.has(tabId)) {
+    chrome.scripting
+      .executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          // Force a minor DOM update to ensure scripts run properly
+          try {
+            // Create a temporary element and remove it
+            const tempElement = document.createElement("div");
+            tempElement.id = "inactitab-refresh-trigger";
+            document.body.appendChild(tempElement);
+            setTimeout(() => {
+              if (tempElement && tempElement.parentNode) {
+                tempElement.remove();
+              }
+            }, 100);
+
+            // In case the inactive icon is broken/wrong state
+            const inactiveIcon = document.getElementById("inactive-tab-icon");
+            if (inactiveIcon && inactiveIcon.parentNode) {
+              inactiveIcon.remove();
+            }
+
+            // Fix title if needed
+            if (document.title && document.title.includes("⚠️ INACTIVE - ")) {
+              document.title = document.title.replace("⚠️ INACTIVE - ", "");
+            }
+          } catch (err) {
+            console.error("Error refreshing tab content:", err);
+          }
+        },
+      })
+      .catch((error) => {
+        console.log(`❌ Could not refresh tab content for ${tabId}:`, error);
+      });
+  }
+}
