@@ -66,9 +66,9 @@ function setupEventListeners() {
   chrome.tabs.onRemoved.addListener(handleTabRemoved);
   chrome.tabs.onUpdated.addListener(handleTabUpdated);
 
-  // Extension installed/startup
-  chrome.runtime.onStartup.addListener(createContextMenu);
-  chrome.runtime.onInstalled.addListener(createContextMenu);
+  // Extension installed/startup - remove context menu listeners
+  chrome.runtime.onStartup.addListener(() => {});
+  chrome.runtime.onInstalled.addListener(() => {});
 }
 
 async function handleTabActivated(activeInfo) {
@@ -170,29 +170,8 @@ function handleTabRemoved(tabId) {
 }
 
 function createContextMenu() {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: "whitelist-tab",
-      title: "🛡️ Whitelist this tab",
-      contexts: ["page"],
-      documentUrlPatterns: ["http://*/*", "https://*/*"],
-    });
-
-    chrome.contextMenus.create({
-      id: "whitelist-current-tab",
-      title: "🛡️ Whitelist current tab",
-      contexts: ["action"],
-    });
-  });
-
-  chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (
-      info.menuItemId === "whitelist-tab" ||
-      info.menuItemId === "whitelist-current-tab"
-    ) {
-      whitelistTab(tab);
-    }
-  });
+  // Remove all context menu functionality
+  chrome.contextMenus.removeAll();
 }
 
 function startAllInactiveTimers(exceptTabId) {
@@ -449,43 +428,27 @@ function resumeTimer(tabId) {
 function updateTabIcon(tabId, isWhitelisted) {
   try {
     if (isWhitelisted) {
-      // Inject lock icon in page
+      // Remove any existing sleep or inactive icons when whitelisting
       chrome.scripting
         .executeScript({
           target: { tabId: tabId },
           func: () => {
             try {
-              let lockIcon = document.getElementById("whitelist-lock-icon");
-              if (!lockIcon) {
-                lockIcon = document.createElement("div");
-                lockIcon.id = "whitelist-lock-icon";
-                lockIcon.innerHTML = "🔒";
-                lockIcon.style.cssText = `
-                  position: fixed;
-                  top: 10px;
-                  left: 10px;
-                  background: #27ae60;
-                  color: white;
-                  padding: 5px 10px;
-                  border-radius: 5px;
-                  font-size: 14px;
-                  z-index: 10000;
-                  font-weight: bold;
-                  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                  border: 2px solid #229954;
-                `;
-                document.body.appendChild(lockIcon);
+              // Remove sleep icon if present
+              const sleepIcon = document.getElementById("sleep-tab-icon");
+              if (sleepIcon && sleepIcon.parentNode) {
+                sleepIcon.remove();
+              }
+
+              // Remove inactive icon if present
+              const inactiveIcon = document.getElementById("inactive-tab-icon");
+              if (inactiveIcon && inactiveIcon.parentNode) {
+                inactiveIcon.remove();
               }
 
               // Update tab title to show lock - clean approach
               if (!document.title.startsWith("🔒")) {
                 document.title = `🔒${document.title}`;
-              }
-
-              // Also remove sleep icon if present
-              const sleepIcon = document.getElementById("sleep-tab-icon");
-              if (sleepIcon && sleepIcon.parentNode) {
-                sleepIcon.remove();
               }
 
               // Clean up title from sleep icon
@@ -498,22 +461,14 @@ function updateTabIcon(tabId, isWhitelisted) {
           },
         })
         .catch((error) => {
-          console.log(`❌ Could not inject lock icon for tab ${tabId}:`, error);
+          console.log(`❌ Could not update tab for whitelist ${tabId}:`, error);
         });
-
-      // Add green border around favicon in browser tab
-      addFaviconBorder(tabId);
     } else {
-      // Remove lock icon from page
+      // Remove whitelist indicators
       chrome.scripting
         .executeScript({
           target: { tabId: tabId },
           func: () => {
-            const lockIcon = document.getElementById("whitelist-lock-icon");
-            if (lockIcon) {
-              lockIcon.remove();
-            }
-
             // Remove lock from title - clean approach
             if (document.title.startsWith("🔒")) {
               document.title = document.title.replace(/^🔒\s*/, "");
@@ -521,92 +476,15 @@ function updateTabIcon(tabId, isWhitelisted) {
           },
         })
         .catch((error) => {
-          console.log(`❌ Could not remove lock icon for tab ${tabId}:`, error);
+          console.log(
+            `❌ Could not remove whitelist indicators for tab ${tabId}:`,
+            error
+          );
         });
-
-      // Remove green border from favicon
-      removeFaviconBorder(tabId);
     }
   } catch (error) {
     console.log(`Could not update icon for tab ${tabId}:`, error);
   }
-}
-
-function addFaviconBorder(tabId) {
-  chrome.scripting
-    .executeScript({
-      target: { tabId: tabId },
-      func: () => {
-        // Add CSS to create green border around favicon in browser tab
-        let style = document.getElementById("whitelist-favicon-style");
-        if (!style) {
-          style = document.createElement("style");
-          style.id = "whitelist-favicon-style";
-          style.textContent = `
-            /* This won't directly affect browser tab favicon, but we can try other methods */
-          `;
-          document.head.appendChild(style);
-        }
-
-        // Try to modify favicon with green border
-        const favicon = document.querySelector(
-          'link[rel="icon"], link[rel="shortcut icon"]'
-        );
-        if (favicon) {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          const img = new Image();
-
-          img.onload = function () {
-            canvas.width = img.width + 6;
-            canvas.height = img.height + 6;
-
-            // Draw green border
-            ctx.fillStyle = "#27ae60";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw original favicon
-            ctx.drawImage(img, 3, 3);
-
-            // Update favicon
-            favicon.href = canvas.toDataURL();
-          };
-
-          img.src = favicon.href;
-        }
-      },
-    })
-    .catch((error) => {
-      console.log(`❌ Could not add favicon border for tab ${tabId}:`, error);
-    });
-}
-
-function removeFaviconBorder(tabId) {
-  chrome.scripting
-    .executeScript({
-      target: { tabId: tabId },
-      func: () => {
-        // Remove the style
-        const style = document.getElementById("whitelist-favicon-style");
-        if (style) {
-          style.remove();
-        }
-
-        // Try to restore original favicon (this is limited by browser security)
-        const favicon = document.querySelector(
-          'link[rel="icon"], link[rel="shortcut icon"]'
-        );
-        if (favicon && favicon.dataset.originalHref) {
-          favicon.href = favicon.dataset.originalHref;
-        }
-      },
-    })
-    .catch((error) => {
-      console.log(
-        `❌ Could not remove favicon border for tab ${tabId}:`,
-        error
-      );
-    });
 }
 
 async function whitelistTab(tab) {
