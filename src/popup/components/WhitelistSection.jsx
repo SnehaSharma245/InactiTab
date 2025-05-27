@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from "react";
+import {
+  Shield,
+  Plus,
+  Minus,
+  Globe,
+  FileText,
+  ArrowUpDown,
+} from "lucide-react";
 
 const WhitelistSection = ({
   whitelist,
@@ -9,6 +17,7 @@ const WhitelistSection = ({
   const [urlInput, setUrlInput] = useState("");
   const [feedback, setFeedback] = useState("");
   const [openedTabs, setOpenedTabs] = useState([]);
+  const [sortWhitelistedFirst, setSortWhitelistedFirst] = useState(false);
 
   useEffect(() => {
     loadOpenedTabs();
@@ -106,59 +115,87 @@ const WhitelistSection = ({
     }
   };
 
+  const getSortedTabs = () => {
+    if (!sortWhitelistedFirst) return openedTabs;
+
+    return [...openedTabs].sort((a, b) => {
+      if (a.isWhitelisted && !b.isWhitelisted) return -1;
+      if (!a.isWhitelisted && b.isWhitelisted) return 1;
+      return 0;
+    });
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="mb-4">
-        <h3 className="text-base font-medium mb-2 flex items-center text-gray-800 dark:text-white">
-          <span className="mr-2 text-sm">🛡️</span>Quick Whitelist
+        <h3 className="gradient-text text-base font-medium mb-2 flex items-center">
+          <Shield className="mr-2 w-4 h-4" />
+          Quick Whitelist
         </h3>
       </div>
 
-      <div className="bg-gray-50 rounded-md p-3 mb-4 border border-gray-200 dark:bg-dark-card dark:border-dark-border">
-        <button
-          className={`w-full mb-2 px-3 py-2 border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 inline-flex items-center justify-center relative overflow-hidden hover:-translate-y-0.5 shimmer ${
-            feedback
-              ? "bg-success-500 text-white hover:bg-success-600"
-              : "bg-success-500 text-white hover:bg-success-600"
-          }`}
-          onClick={handleWhitelistCurrent}
-        >
-          <span className="mr-1 text-xs">🛡️</span>
-          {feedback || "Whitelist Current Tab"}
-        </button>
+      <button
+        className="modern-button w-full mb-2"
+        onClick={handleWhitelistCurrent}
+      >
+        <Shield className="mr-2 w-4 h-4 inline" />
+        {feedback || "Whitelist Current Tab"}
+      </button>
 
+      <div className="modern-card p-4 mb-4">
         <input
           type="url"
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Enter URL to whitelist"
-          className="w-full p-2 border border-gray-300 rounded text-xs bg-white text-gray-800 transition-all duration-300 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 dark:bg-dark-input dark:text-white dark:border-dark-border"
+          className="modern-input w-full mb-2"
         />
-        <button
-          onClick={handleAddUrl}
-          className="w-full mt-2 px-3 py-2 border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 inline-flex items-center justify-center relative overflow-hidden hover:-translate-y-0.5 bg-primary-500 text-white hover:bg-primary-600 shimmer"
-        >
+        <button onClick={handleAddUrl} className="modern-button w-full">
           Add to Whitelist
         </button>
       </div>
 
       {/* Opened Tabs List */}
       <div>
-        <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-          <span className="mr-1 text-xs">📑</span>Opened Tabs
-        </h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-medium text-gray-300 flex items-center">
+            <FileText className="mr-2 w-4 h-4" />
+            Opened Tabs
+          </h4>
+          {openedTabs.length > 0 && (
+            <button
+              onClick={() => setSortWhitelistedFirst(!sortWhitelistedFirst)}
+              className={`text-xs px-2 py-1 rounded-lg transition-all duration-200 flex items-center gap-1
+                         ${
+                           sortWhitelistedFirst
+                             ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                             : "bg-gray-600/20 text-gray-400 border border-gray-600/30 hover:bg-gray-600/30"
+                         }`}
+              title="Sort whitelisted tabs first"
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              Sort
+            </button>
+          )}
+        </div>
         <div className="max-h-48 overflow-y-auto border border-gray-200 rounded dark:border-dark-border">
           {openedTabs.length === 0 ? (
             <div className="p-3 text-center text-gray-500 dark:text-gray-400">
+              <FileText className="w-6 h-6 mx-auto mb-2 text-gray-400" />
               <p className="text-xs">No tabs found</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {openedTabs.map((tab) => (
+              {getSortedTabs().map((tab) => (
                 <div
                   key={tab.id}
-                  className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className={`p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                             ${
+                               tab.isWhitelisted
+                                 ? "bg-emerald-500/5 border-l-2 border-emerald-500/30"
+                                 : ""
+                             }`}
                 >
                   <div className="flex items-center">
                     <div className="flex items-center flex-1 min-w-0">
@@ -170,9 +207,7 @@ const WhitelistSection = ({
                             className="w-3 h-3 rounded-full"
                           />
                         ) : (
-                          <div className="w-3 h-3 bg-gray-300 rounded-full flex items-center justify-center">
-                            <span className="text-xs">🌐</span>
-                          </div>
+                          <Globe className="w-3 h-3 text-gray-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -189,18 +224,25 @@ const WhitelistSection = ({
                         e.stopPropagation();
                         handleTabWhitelistToggle(tab, !tab.isWhitelisted);
                       }}
-                      className={`ml-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 hover:scale-110 ${
-                        tab.isWhitelisted
-                          ? "bg-red-500 text-white hover:bg-red-600"
-                          : "bg-green-500 text-white hover:bg-green-600"
-                      }`}
+                      className={`ml-2 w-7 h-7 rounded-xl flex items-center justify-center 
+                                 transition-all duration-300 hover:scale-105 shadow-sm
+                                 border border-opacity-20 backdrop-blur-sm
+                                 ${
+                                   tab.isWhitelisted
+                                     ? "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 border-red-400 shadow-red-500/20"
+                                     : "bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-emerald-400 shadow-emerald-500/20"
+                                 }`}
                       title={
                         tab.isWhitelisted
                           ? "Remove from whitelist"
                           : "Add to whitelist"
                       }
                     >
-                      {tab.isWhitelisted ? "−" : "+"}
+                      {tab.isWhitelisted ? (
+                        <Minus className="w-3.5 h-3.5 text-white font-bold" />
+                      ) : (
+                        <Plus className="w-3.5 h-3.5 text-white font-bold" />
+                      )}
                     </button>
                   </div>
                 </div>
