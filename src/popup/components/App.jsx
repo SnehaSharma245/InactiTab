@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import Navigation from "./Navigation";
 import WhitelistSection from "./WhitelistSection";
+import AutoclosedSection from "./AutoclosedSection";
 import SettingsSection from "./SettingsSection";
 
 import { useTheme } from "../hooks/useTheme";
@@ -32,8 +33,8 @@ const App = () => {
 
   return (
     <div
-      className={`w-96 min-h-96 text-sm leading-relaxed bg-white text-gray-800 transition-all duration-300 ${
-        theme === "dark" ? "dark bg-dark-bg text-white" : ""
+      className={`w-96 min-h-96 text-xs leading-relaxed transition-all duration-300 ${
+        theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-800"
       }`}
     >
       <Header theme={theme} onToggleTheme={toggleTheme} />
@@ -42,7 +43,7 @@ const App = () => {
         onSectionChange={handleSectionChange}
       />
 
-      <div className="p-5">
+      <div className="p-4">
         {currentSection === "whitelist" && (
           <WhitelistSection
             whitelist={whitelist}
@@ -51,6 +52,8 @@ const App = () => {
             onWhitelistCurrentTab={whitelistCurrentTab}
           />
         )}
+
+        {currentSection === "manage" && <AutoclosedSection />}
 
         {currentSection === "settings" && (
           <SettingsSection
