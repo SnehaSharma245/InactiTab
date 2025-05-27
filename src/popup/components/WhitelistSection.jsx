@@ -19,7 +19,7 @@ const WhitelistSection = ({
       const tabs = await chrome.tabs.query({});
       const tabsData = tabs.map((tab) => ({
         id: tab.id,
-        title: tab.title,
+        title: tab.title.replace(/^💤\s*/, "").replace(/^🔒\s*/, ""), // Clean sleep and lock icons from title
         url: tab.url,
         favIconUrl: tab.favIconUrl,
         origin: new URL(tab.url).origin,

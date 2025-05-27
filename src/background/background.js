@@ -313,7 +313,8 @@ function markTabInactive(tabId) {
             document.body.appendChild(sleepIcon);
           }
 
-          if (!document.title.includes("💤")) {
+          // Only add sleep icon to title if not already present
+          if (!document.title.startsWith("💤")) {
             document.title = `💤${document.title}`;
           }
         } catch (err) {
@@ -351,8 +352,9 @@ function markTabActive(tabId) {
               inactiveIcon.remove();
             }
 
-            if (document.title && document.title.includes("💤")) {
-              document.title = document.title.replace("💤", "");
+            // Clean up title - remove sleep icon
+            if (document.title.startsWith("💤")) {
+              document.title = document.title.replace(/^💤\s*/, "");
             }
           } catch (err) {
             console.error("Error removing sleep mode icon:", err);
@@ -475,19 +477,20 @@ function updateTabIcon(tabId, isWhitelisted) {
                 document.body.appendChild(lockIcon);
               }
 
-              // Update tab title to show lock
-              if (!document.title.includes("🔒")) {
-                document.title = `🔒 ${document.title}`;
+              // Update tab title to show lock - clean approach
+              if (!document.title.startsWith("🔒")) {
+                document.title = `🔒${document.title}`;
               }
 
-              // Also remove inactive icon if present
-              const inactiveIcon = document.getElementById("inactive-tab-icon");
-              if (inactiveIcon && inactiveIcon.parentNode) {
-                inactiveIcon.remove();
+              // Also remove sleep icon if present
+              const sleepIcon = document.getElementById("sleep-tab-icon");
+              if (sleepIcon && sleepIcon.parentNode) {
+                sleepIcon.remove();
               }
 
-              if (document.title && document.title.includes("💤")) {
-                document.title = document.title.replace("💤", "");
+              // Clean up title from sleep icon
+              if (document.title.includes("💤")) {
+                document.title = document.title.replace(/💤\s*/, "");
               }
             } catch (err) {
               console.error("Error updating tab icon:", err);
@@ -511,9 +514,9 @@ function updateTabIcon(tabId, isWhitelisted) {
               lockIcon.remove();
             }
 
-            // Remove lock from title
-            if (document.title.includes("🔒 ")) {
-              document.title = document.title.replace("🔒 ", "");
+            // Remove lock from title - clean approach
+            if (document.title.startsWith("🔒")) {
+              document.title = document.title.replace(/^🔒\s*/, "");
             }
           },
         })
@@ -822,9 +825,9 @@ function refreshTabContent(tabId) {
               inactiveIcon.remove();
             }
 
-            // Fix title if needed
-            if (document.title && document.title.includes("💤")) {
-              document.title = document.title.replace("💤", "");
+            // Fix title if needed - clean approach
+            if (document.title.startsWith("💤")) {
+              document.title = document.title.replace(/^💤\s*/, "");
             }
           } catch (err) {
             console.error("Error refreshing tab content:", err);
