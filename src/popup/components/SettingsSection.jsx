@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const SettingsSection = ({ settings, onUpdateSettings, onSaveSettings }) => {
   const [localSettings, setLocalSettings] = useState(settings);
   const [saveStatus, setSaveStatus] = useState("");
+
+  useEffect(() => {
+    // Initialize local settings when props.settings change
+    setLocalSettings(settings);
+  }, [settings]);
 
   const handleChange = (key, value) => {
     const newSettings = { ...localSettings, [key]: value };
@@ -14,6 +19,18 @@ const SettingsSection = ({ settings, onUpdateSettings, onSaveSettings }) => {
     await onSaveSettings(localSettings);
     setSaveStatus("✓ Saved!");
     setTimeout(() => setSaveStatus(""), 2000);
+  };
+
+  const handleHistoryLimitChange = (e) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= 20) {
+      const newSettings = {
+        ...localSettings,
+        historyLimit: value,
+      };
+      setLocalSettings(newSettings);
+      onUpdateSettings(newSettings);
+    }
   };
 
   return (
@@ -99,6 +116,28 @@ const SettingsSection = ({ settings, onUpdateSettings, onSaveSettings }) => {
         </label>
         <p className="text-xs text-gray-500 ml-6 dark:text-gray-400">
           Automatically close tabs without showing popup
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+          History Size
+        </label>
+        <div className="flex items-center space-x-2">
+          <input
+            type="number"
+            min="1"
+            max="20"
+            value={localSettings.historyLimit || 10}
+            onChange={handleHistoryLimitChange}
+            className="w-20 p-1.5 border border-gray-300 rounded text-xs bg-white text-gray-800 transition-all duration-300 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 dark:bg-dark-input dark:text-white dark:border-dark-border"
+          />
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            tabs (1-20)
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Number of auto-closed tabs to keep in history
         </p>
       </div>
 
