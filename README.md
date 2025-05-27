@@ -1,56 +1,80 @@
-# InactiTab Manager
+# InactiTab 🚀
 
-A Chrome extension built with React to manage inactive tabs with smart whitelist and customizable settings.
+Smart Chrome extension for managing inactive tabs with intelligent protection and automation.
 
-## Features
+## ✨ Key Features
 
-- 🕒 Track inactive tabs with customizable timer
-- 🛡️ Whitelist URLs to prevent closure
-- ⚙️ Configurable settings (timer, auto-close, pinned tabs)
-- 🌙 Light/Dark theme support
-- 📱 Modern React-based UI
+- **Smart Tracking**: Automatically detects inactive tabs with customizable timers
+- **Media Protection**: Protects tabs with active audio/video and video calls
+- **URL Whitelisting**: Manual protection for important sites
+- **Auto-Close Mode**: Automatically closes inactive tabs with history backup
+- **Visual Tab Indicators**: Visual indicators (💤) without closing tabs
+- **Modern UI**: Dark theme with real-time status updates
 
-## Development
+## 🔧 User Flexibility
 
-1. Install dependencies:
+- **Timer Settings**: 1-999 seconds/minutes/hours
+- **Tab Threshold**: Start tracking when tabs exceed limit (1-100)
+- **Auto-Close Toggle**: Switch between sleep mode and auto-close
+- **History Management**: Keep 1-20 auto-closed tabs
+- **Pinned tab Protection**: Optional protection for pinned tabs
+- **Batch Operations**: Select, manage or revisit multiple auto-closed tabs
 
-```bash
-npm install
-```
+## 🛡️ Auto-Protected Tabs
 
-2. Build the extension:
+- Tabs playing audio/video
+- Video call sites (Meet, Zoom, Teams, Discord, etc.)
+- Whitelisted URLs
+- Pinned tabs (optional)
+- Active tab
 
-```bash
-npm run build
-```
+## ⚠️ Important Note
 
-3. Load the extension:
+Visual indicators (💤, 🔒) are **not supported** on browser internal pages like:
 
-   - Open Chrome Extensions (chrome://extensions/)
-   - Enable Developer mode
-   - Click "Load unpacked" and select the `dist` folder
+- `chrome://extensions/`
+- `brave://settings/`
+- `edge://flags/`
+- `about:` pages
 
-4. For development with auto-rebuild:
+This is a browser security limitation. The extension will still track and manage these tabs, but won't show visual indicators.
 
-```bash
-npm run dev
-```
+## 🚀 Quick Start
 
-## Project Structure
+1. Clone and install:
+
+   ```bash
+   git clone <repo-url>
+   cd InactiTab2
+   npm install && npm run build
+   ```
+
+2. Load in Chrome:
+
+   - Open `chrome://extensions/`
+   - Enable Developer mode → Load unpacked → Select `dist` folder
+
+3. Configure settings in extension popup
+
+## 🏗️ Tech Stack
+
+- React 18 + Tailwind CSS
+- Chrome Extensions API (Manifest V3)
+- Local storage only (no external servers)
+
+## 📁 Project Structure
 
 ```
 src/
-├── background/
-│   └── background.js      # Background service worker
-├── popup/
-│   ├── components/        # React components
-│   ├── hooks/            # Custom React hooks
-│   ├── styles/           # CSS styles
-│   ├── popup.html        # Popup HTML
-│   └── index.js          # React entry point
-└── manifest.json         # Extension manifest
+├── background/background.js    # Tab management logic
+├── popup/components/          # React UI components
+├── content/index.js          # Content script
+└── manifest.json            # Extension config
 ```
 
-## Build Output
+## 🛠️ Development
 
-The built extension is output to the `dist/` directory and ready to be loaded as an unpacked extension.
+```bash
+npm run dev      # Development mode
+npm run build    # Production build
+```
