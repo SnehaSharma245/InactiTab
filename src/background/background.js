@@ -30,13 +30,11 @@ async function initializeTabs() {
   });
   if (activeTabs.length > 0) {
     activeTabId = activeTabs[0].id;
-    console.log(`🎯 Active tab:- "${activeTabs[0].title}"`);
   }
 
   // Initialize timers for all existing tabs
   const allTabs = await chrome.tabs.query({});
   allTabs.forEach((tab) => {
-    console.log(`🔍 Tab found:- "${tab.title}"`);
     tabTimers.set(tab.id, {
       interval: null,
       startTime: null,
@@ -73,17 +71,10 @@ function setupEventListeners() {
 
 async function handleTabActivated(activeInfo) {
   const newActiveTabId = activeInfo.tabId;
-  try {
-    const tab = await chrome.tabs.get(newActiveTabId);
-    console.log(`🔀 Tab switched to: "${tab.title}" (${newActiveTabId})`);
-  } catch (error) {
-    console.log(`🔀 Tab switched to: ${newActiveTabId}`);
-  }
 
   // Update inactive state and refresh content
   await refreshTabContent(newActiveTabId);
 
-  console.log(`⏸️ Pausing all existing timers`);
   tabTimers.forEach((timer, tabId) => {
     if (timer.interval && !timer.isPaused && tabId !== newActiveTabId) {
       pauseTimer(tabId);
@@ -94,11 +85,9 @@ async function handleTabActivated(activeInfo) {
   startAllInactiveTimers(newActiveTabId);
 
   activeTabId = newActiveTabId;
-  console.log(`✅ Active tab updated to: ${newActiveTabId}`);
 }
 
 function handleTabCreated(tab) {
-  console.log(`➕ New tab created: ${tab.id} - "${tab.title || "Loading..."}"`);
   tabTimers.set(tab.id, {
     interval: null,
     startTime: null,
@@ -109,10 +98,6 @@ function handleTabCreated(tab) {
   // Check if we should start tracking based on tab count
   chrome.tabs.query({}, (allTabs) => {
     if (allTabs.length > settings.tabThreshold) {
-      console.log(
-        `📊 Tab threshold exceeded (${allTabs.length}/${settings.tabThreshold}). Starting tracking for new tab.`
-      );
-
       // Check for whitelisted status after a brief delay
       setTimeout(() => {
         chrome.tabs
@@ -127,10 +112,6 @@ function handleTabCreated(tab) {
           })
           .catch(() => {});
       }, 1000);
-    } else {
-      console.log(
-        `📊 Tab count (${allTabs.length}) is below threshold (${settings.tabThreshold}). Not tracking new tab.`
-      );
     }
   });
 }
@@ -145,9 +126,6 @@ function handleTabUpdated(tabId, changeInfo, tab) {
     if (isUrlWhitelisted || isPinnedAndProtected) {
       pauseAndResetTimer(tabId);
       markTabActive(tabId);
-      console.log(
-        `🔄 Tab ${tabId} updated - now protected (URL: ${isUrlWhitelisted}, Pinned: ${isPinnedAndProtected})`
-      );
     }
   }
 
@@ -158,16 +136,12 @@ function handleTabUpdated(tabId, changeInfo, tab) {
     if (isPinnedAndProtected || isUrlWhitelisted) {
       pauseAndResetTimer(tabId);
       markTabActive(tabId);
-      console.log(
-        `📌 Tab ${tabId} pinned status changed - now protected: ${isPinnedAndProtected}`
-      );
     } else if (
       !changeInfo.pinned &&
       !isUrlWhitelisted &&
       tabId !== activeTabId
     ) {
       resumeTimer(tabId);
-      console.log(`📌 Tab ${tabId} unpinned - starting timer`);
     }
   }
 }
@@ -182,22 +156,16 @@ function handleTabRemoved(tabId) {
   }
 
   inactiveTabs.delete(tabId);
-  console.log(`❌ Tab closed and timer removed: ${tabId}`);
 
   // Check if we should stop tracking due to tab count dropping below threshold
   chrome.tabs.query({}, (allTabs) => {
     if (allTabs.length <= settings.tabThreshold) {
-      console.log(
-        `📊 Tab count dropped to ${allTabs.length} (threshold: ${settings.tabThreshold}). Stopping all timers.`
-      );
-
       // Stop all timers
       tabTimers.forEach((timer, tabId) => {
         if (timer.interval) {
           clearInterval(timer.interval);
           timer.interval = null;
           timer.isPaused = true;
-          console.log(`⏸️ Stopped timer for tab ${tabId} (below threshold)`);
         }
       });
     }
@@ -205,27 +173,16 @@ function handleTabRemoved(tabId) {
 }
 
 function createContextMenu() {
-  // Remove all context menu functionality
+  // Remove any existing context menus
   chrome.contextMenus.removeAll();
 }
 
 function startAllInactiveTimers(exceptTabId) {
-  console.log(
-    `🌟 Starting/Resuming timers for inactive tabs except: ${exceptTabId}`
-  );
-
   // Check tab threshold first
   chrome.tabs.query({}, (allTabs) => {
     if (allTabs.length <= settings.tabThreshold) {
-      console.log(
-        `📊 Tab count (${allTabs.length}) is below threshold (${settings.tabThreshold}). Not starting timers.`
-      );
       return;
     }
-
-    console.log(
-      `📊 Tab count (${allTabs.length}) exceeds threshold (${settings.tabThreshold}). Starting timers.`
-    );
 
     tabTimers.forEach((timer, tabId) => {
       if (tabId !== exceptTabId) {
@@ -239,20 +196,6 @@ function startAllInactiveTimers(exceptTabId) {
 
             if (!isUrlWhitelisted && !isPinnedAndProtected) {
               resumeTimer(tabId);
-              console.log(
-                `▶️ Resumed timer for inactive tab: ${tabId} (pinned: ${tab.pinned}, whitelistPinned: ${settings.whitelistPinned})`
-              );
-            } else {
-              if (isUrlWhitelisted) {
-                console.log(
-                  `🛡️ Skipping URL whitelisted tab: ${tabId} - ${tab.url}`
-                );
-              }
-              if (isPinnedAndProtected) {
-                console.log(
-                  `📌 Skipping pinned tab (protected): ${tabId} - ${tab.title}`
-                );
-              }
             }
           })
           .catch(() => {
@@ -268,8 +211,6 @@ function markTabInactive(tabId) {
 
   // Check if auto-close is enabled
   if (settings.autoClose) {
-    console.log(`🔥 Auto-closing inactive tab: ${tabId}`);
-
     // Save tab info before closing
     chrome.tabs.get(tabId, async (tab) => {
       try {
@@ -352,13 +293,8 @@ function markTabInactive(tabId) {
       },
     })
     .catch((error) => {
-      console.log(
-        `❌ Could not inject sleep mode icon for tab ${tabId}:`,
-        error
-      );
+      // Silent fail
     });
-
-  console.log(`😴 Marked tab ${tabId} as sleeping`);
 }
 
 function markTabActive(tabId) {
@@ -391,13 +327,8 @@ function markTabActive(tabId) {
         },
       })
       .catch((error) => {
-        console.log(
-          `❌ Could not remove sleep mode icon for tab ${tabId}:`,
-          error
-        );
+        // Silent fail
       });
-
-    console.log(`✅ Marked tab ${tabId} as active (woke up from sleep)`);
   }
 }
 
@@ -413,7 +344,6 @@ function pauseAndResetTimer(tabId) {
     timer.isPaused = true;
 
     markTabActive(tabId);
-    console.log(`⏸️🔄 Paused and reset timer for active tab ${tabId} to 0s`);
   }
 }
 
@@ -439,32 +369,17 @@ function resumeTimer(tabId) {
         const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
 
         if (isUrlWhitelisted || isPinnedAndProtected) {
-          console.log(
-            `🛡️ Tab ${tabId} is now protected, stopping timer (URL whitelisted: ${isUrlWhitelisted}, Pinned protected: ${isPinnedAndProtected})`
-          );
           clearInterval(interval);
           timer.interval = null;
           markTabActive(tabId);
           return;
         }
-
-        console.log(
-          `⏱️ Tab "${tab.title}" (${tabId}) - Total elapsed: ${Math.floor(
-            currentElapsed / 1000
-          )}s (pinned: ${tab.pinned})`
-        );
       } catch (error) {
-        console.log(
-          `⏱️ Tab ${tabId} - Total elapsed: ${Math.floor(
-            currentElapsed / 1000
-          )}s (Tab might be closed)`
-        );
         clearInterval(interval);
         return;
       }
 
       if (currentElapsed >= getTimerDurationMs()) {
-        console.log(`⚠️ Tab ${tabId} reached inactive timeout!`);
         markTabInactive(tabId);
         clearInterval(interval);
         timer.interval = null;
@@ -511,7 +426,7 @@ function updateTabIcon(tabId, isWhitelisted) {
           },
         })
         .catch((error) => {
-          console.log(`❌ Could not update tab for whitelist ${tabId}:`, error);
+          // Silent fail
         });
     } else {
       // Remove whitelist indicators
@@ -526,14 +441,11 @@ function updateTabIcon(tabId, isWhitelisted) {
           },
         })
         .catch((error) => {
-          console.log(
-            `❌ Could not remove whitelist indicators for tab ${tabId}:`,
-            error
-          );
+          // Silent fail
         });
     }
   } catch (error) {
-    console.log(`Could not update icon for tab ${tabId}:`, error);
+    // Silent fail
   }
 }
 
@@ -590,9 +502,6 @@ function handleMessage(message, sender, sendResponse) {
       INACTIVE_TIMEOUT = getTimerDurationMs();
       // Refresh timers when whitelistPinned setting changes
       refreshAllTimers();
-      console.log(
-        `⚙️ Settings updated - whitelistPinned: ${settings.whitelistPinned}`
-      );
       break;
 
     case "updateWhitelist":
@@ -634,14 +543,7 @@ function refreshAllTimers() {
   // Check tab threshold before restarting timers
   chrome.tabs.query({}, (allTabs) => {
     if (allTabs.length > settings.tabThreshold && activeTabId) {
-      console.log(
-        `📊 Refreshing timers. Tab count: ${allTabs.length}, Threshold: ${settings.tabThreshold}`
-      );
       startAllInactiveTimers(activeTabId);
-    } else {
-      console.log(
-        `📊 Not starting timers. Tab count: ${allTabs.length}, Threshold: ${settings.tabThreshold}`
-      );
     }
   });
 }
@@ -696,11 +598,6 @@ function pauseTimer(tabId) {
       }
       timer.isPaused = true;
       timer.interval = null;
-      console.log(
-        `⏸️ Paused timer for tab ${tabId} - Total elapsed: ${Math.floor(
-          timer.elapsedTime / 1000
-        )}s`
-      );
     }
   }
 }
@@ -773,7 +670,7 @@ function refreshTabContent(tabId) {
         },
       })
       .catch((error) => {
-        console.log(`❌ Could not refresh tab content for ${tabId}:`, error);
+        // Silent fail
       });
   }
 }
