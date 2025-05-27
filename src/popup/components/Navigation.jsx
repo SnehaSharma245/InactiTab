@@ -5,35 +5,48 @@ const Navigation = ({
   showInactiveSection,
   onSectionChange,
 }) => {
-  const navBtnClass = (section) => `
-    px-4 py-3 border-none bg-transparent text-sm font-medium cursor-pointer 
-    border-b-2 transition-all duration-200 flex-1
-    ${
-      currentSection === section
-        ? "text-primary-600 border-primary-500 bg-gray-100 dark:text-primary-500 dark:bg-primary-500/10"
-        : "border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+  const getNavBtnClasses = (section, theme) => {
+    const baseClasses = `
+      px-3 py-2 border-none bg-transparent text-xs font-medium cursor-pointer 
+      border-b-2 transition-all duration-200 flex-1
+    `;
+
+    if (currentSection === section) {
+      return theme === "dark"
+        ? `${baseClasses} text-blue-400 border-blue-400 bg-blue-400/10`
+        : `${baseClasses} text-blue-600 border-blue-500 bg-blue-50`;
     }
-  `;
+
+    return theme === "dark"
+      ? `${baseClasses} border-transparent text-gray-400 hover:bg-gray-700 hover:text-white`
+      : `${baseClasses} border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800`;
+  };
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200 dark:bg-dark-card dark:border-dark-border">
+    <div className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
       <nav className="flex">
         {showInactiveSection && (
           <button
-            className={navBtnClass("inactive")}
+            className={getNavBtnClasses("inactive")}
             onClick={() => onSectionChange("inactive")}
           >
-            Inactive Tab
+            Inactive
           </button>
         )}
         <button
-          className={navBtnClass("whitelist")}
+          className={getNavBtnClasses("whitelist")}
           onClick={() => onSectionChange("whitelist")}
         >
-          Whitelist
+          Quick
         </button>
         <button
-          className={navBtnClass("settings")}
+          className={getNavBtnClasses("manage")}
+          onClick={() => onSectionChange("manage")}
+        >
+          History
+        </button>
+        <button
+          className={getNavBtnClasses("settings")}
           onClick={() => onSectionChange("settings")}
         >
           Settings
