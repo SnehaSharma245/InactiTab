@@ -273,46 +273,62 @@ function markTabInactive(tabId) {
     return;
   }
 
-  // Only show inactive icon if auto-close is disabled
+  // Only show sleep mode indicator if auto-close is disabled
   chrome.scripting
     .executeScript({
       target: { tabId: tabId },
       func: () => {
         try {
-          let inactiveIcon = document.getElementById("inactive-tab-icon");
-          if (!inactiveIcon) {
-            inactiveIcon = document.createElement("div");
-            inactiveIcon.id = "inactive-tab-icon";
-            inactiveIcon.innerHTML = "⚠️";
-            inactiveIcon.style.cssText = `
+          let sleepIcon = document.getElementById("sleep-tab-icon");
+          if (!sleepIcon) {
+            sleepIcon = document.createElement("div");
+            sleepIcon.id = "sleep-tab-icon";
+            sleepIcon.innerHTML = "💤";
+            sleepIcon.style.cssText = `
               position: fixed;
               top: 10px;
               right: 10px;
-              background: #ff4444;
+              background: linear-gradient(135deg, #4a90e2, #357abd);
               color: white;
-              padding: 5px 10px;
-              border-radius: 5px;
-              font-size: 14px;
+              padding: 8px 12px;
+              border-radius: 20px;
+              font-size: 16px;
               z-index: 10000;
               font-weight: bold;
-              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+              box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+              border: 2px solid #357abd;
+              animation: sleepPulse 2s ease-in-out infinite;
             `;
-            document.body.appendChild(inactiveIcon);
+
+            // Add sleep animation
+            const style = document.createElement("style");
+            style.textContent = `
+              @keyframes sleepPulse {
+                0%, 100% { opacity: 0.8; transform: scale(1); }
+                50% { opacity: 1; transform: scale(1.05); }
+              }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(sleepIcon);
           }
 
-          if (!document.title.includes("⚠️ INACTIVE")) {
-            document.title = `⚠️ INACTIVE - ${document.title}`;
+          if (!document.title.includes("💤")) {
+            document.title = `💤${document.title}`;
           }
         } catch (err) {
-          console.error("Error adding inactive icon:", err);
+          console.error("Error adding sleep mode icon:", err);
         }
       },
     })
     .catch((error) => {
-      console.log(`❌ Could not inject inactive icon for tab ${tabId}:`, error);
+      console.log(
+        `❌ Could not inject sleep mode icon for tab ${tabId}:`,
+        error
+      );
     });
 
-  console.log(`🚨 Marked tab ${tabId} as inactive`);
+  console.log(`😴 Marked tab ${tabId} as sleeping`);
 }
 
 function markTabActive(tabId) {
@@ -324,27 +340,33 @@ function markTabActive(tabId) {
         target: { tabId: tabId },
         func: () => {
           try {
+            const sleepIcon = document.getElementById("sleep-tab-icon");
+            if (sleepIcon && sleepIcon.parentNode) {
+              sleepIcon.remove();
+            }
+
+            // Also remove old inactive icon if present
             const inactiveIcon = document.getElementById("inactive-tab-icon");
             if (inactiveIcon && inactiveIcon.parentNode) {
               inactiveIcon.remove();
             }
 
-            if (document.title && document.title.includes("⚠️ INACTIVE - ")) {
-              document.title = document.title.replace("⚠️ INACTIVE - ", "");
+            if (document.title && document.title.includes("💤")) {
+              document.title = document.title.replace("💤", "");
             }
           } catch (err) {
-            console.error("Error removing inactive icon:", err);
+            console.error("Error removing sleep mode icon:", err);
           }
         },
       })
       .catch((error) => {
         console.log(
-          `❌ Could not remove inactive icon for tab ${tabId}:`,
+          `❌ Could not remove sleep mode icon for tab ${tabId}:`,
           error
         );
       });
 
-    console.log(`✅ Marked tab ${tabId} as active (removed inactive icon)`);
+    console.log(`✅ Marked tab ${tabId} as active (woke up from sleep)`);
   }
 }
 
@@ -464,8 +486,8 @@ function updateTabIcon(tabId, isWhitelisted) {
                 inactiveIcon.remove();
               }
 
-              if (document.title && document.title.includes("⚠️ INACTIVE - ")) {
-                document.title = document.title.replace("⚠️ INACTIVE - ", "");
+              if (document.title && document.title.includes("💤")) {
+                document.title = document.title.replace("💤", "");
               }
             } catch (err) {
               console.error("Error updating tab icon:", err);
@@ -789,15 +811,20 @@ function refreshTabContent(tabId) {
               }
             }, 100);
 
-            // In case the inactive icon is broken/wrong state
+            // Clean up any broken sleep/inactive icons
+            const sleepIcon = document.getElementById("sleep-tab-icon");
+            if (sleepIcon && sleepIcon.parentNode) {
+              sleepIcon.remove();
+            }
+
             const inactiveIcon = document.getElementById("inactive-tab-icon");
             if (inactiveIcon && inactiveIcon.parentNode) {
               inactiveIcon.remove();
             }
 
             // Fix title if needed
-            if (document.title && document.title.includes("⚠️ INACTIVE - ")) {
-              document.title = document.title.replace("⚠️ INACTIVE - ", "");
+            if (document.title && document.title.includes("💤")) {
+              document.title = document.title.replace("💤", "");
             }
           } catch (err) {
             console.error("Error refreshing tab content:", err);
