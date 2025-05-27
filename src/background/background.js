@@ -106,17 +106,33 @@ function handleTabCreated(tab) {
     isPaused: true,
   });
 
-  // Check for whitelisted status after a brief delay
-  setTimeout(() => {
-    chrome.tabs
-      .get(tab.id)
-      .then((updatedTab) => {
-        if (isWhitelisted(updatedTab.url)) {
-          updateTabIcon(tab.id, true);
-        }
-      })
-      .catch(() => {});
-  }, 1000);
+  // Check if we should start tracking based on tab count
+  chrome.tabs.query({}, (allTabs) => {
+    if (allTabs.length > settings.tabThreshold) {
+      console.log(
+        `📊 Tab threshold exceeded (${allTabs.length}/${settings.tabThreshold}). Starting tracking for new tab.`
+      );
+
+      // Check for whitelisted status after a brief delay
+      setTimeout(() => {
+        chrome.tabs
+          .get(tab.id)
+          .then((updatedTab) => {
+            if (isWhitelisted(updatedTab.url)) {
+              updateTabIcon(tab.id, true);
+            } else if (tab.id !== activeTabId) {
+              // Start timer for this new tab if it's not active and not whitelisted
+              resumeTimer(tab.id);
+            }
+          })
+          .catch(() => {});
+      }, 1000);
+    } else {
+      console.log(
+        `📊 Tab count (${allTabs.length}) is below threshold (${settings.tabThreshold}). Not tracking new tab.`
+      );
+    }
+  });
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
@@ -167,6 +183,25 @@ function handleTabRemoved(tabId) {
 
   inactiveTabs.delete(tabId);
   console.log(`❌ Tab closed and timer removed: ${tabId}`);
+
+  // Check if we should stop tracking due to tab count dropping below threshold
+  chrome.tabs.query({}, (allTabs) => {
+    if (allTabs.length <= settings.tabThreshold) {
+      console.log(
+        `📊 Tab count dropped to ${allTabs.length} (threshold: ${settings.tabThreshold}). Stopping all timers.`
+      );
+
+      // Stop all timers
+      tabTimers.forEach((timer, tabId) => {
+        if (timer.interval) {
+          clearInterval(timer.interval);
+          timer.interval = null;
+          timer.isPaused = true;
+          console.log(`⏸️ Stopped timer for tab ${tabId} (below threshold)`);
+        }
+      });
+    }
+  });
 }
 
 function createContextMenu() {
@@ -178,38 +213,53 @@ function startAllInactiveTimers(exceptTabId) {
   console.log(
     `🌟 Starting/Resuming timers for inactive tabs except: ${exceptTabId}`
   );
-  tabTimers.forEach((timer, tabId) => {
-    if (tabId !== exceptTabId) {
-      // Check if tab should be tracked before resuming timer
-      chrome.tabs
-        .get(tabId)
-        .then((tab) => {
-          // Only skip if URL is whitelisted OR (tab is pinned AND whitelistPinned setting is enabled)
-          const isUrlWhitelisted = isWhitelisted(tab.url);
-          const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
 
-          if (!isUrlWhitelisted && !isPinnedAndProtected) {
-            resumeTimer(tabId);
-            console.log(
-              `▶️ Resumed timer for inactive tab: ${tabId} (pinned: ${tab.pinned}, whitelistPinned: ${settings.whitelistPinned})`
-            );
-          } else {
-            if (isUrlWhitelisted) {
-              console.log(
-                `🛡️ Skipping URL whitelisted tab: ${tabId} - ${tab.url}`
-              );
-            }
-            if (isPinnedAndProtected) {
-              console.log(
-                `📌 Skipping pinned tab (protected): ${tabId} - ${tab.title}`
-              );
-            }
-          }
-        })
-        .catch(() => {
-          // Tab might not exist anymore
-        });
+  // Check tab threshold first
+  chrome.tabs.query({}, (allTabs) => {
+    if (allTabs.length <= settings.tabThreshold) {
+      console.log(
+        `📊 Tab count (${allTabs.length}) is below threshold (${settings.tabThreshold}). Not starting timers.`
+      );
+      return;
     }
+
+    console.log(
+      `📊 Tab count (${allTabs.length}) exceeds threshold (${settings.tabThreshold}). Starting timers.`
+    );
+
+    tabTimers.forEach((timer, tabId) => {
+      if (tabId !== exceptTabId) {
+        // Check if tab should be tracked before resuming timer
+        chrome.tabs
+          .get(tabId)
+          .then((tab) => {
+            // Only skip if URL is whitelisted OR (tab is pinned AND whitelistPinned setting is enabled)
+            const isUrlWhitelisted = isWhitelisted(tab.url);
+            const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
+
+            if (!isUrlWhitelisted && !isPinnedAndProtected) {
+              resumeTimer(tabId);
+              console.log(
+                `▶️ Resumed timer for inactive tab: ${tabId} (pinned: ${tab.pinned}, whitelistPinned: ${settings.whitelistPinned})`
+              );
+            } else {
+              if (isUrlWhitelisted) {
+                console.log(
+                  `🛡️ Skipping URL whitelisted tab: ${tabId} - ${tab.url}`
+                );
+              }
+              if (isPinnedAndProtected) {
+                console.log(
+                  `📌 Skipping pinned tab (protected): ${tabId} - ${tab.title}`
+                );
+              }
+            }
+          })
+          .catch(() => {
+            // Tab might not exist anymore
+          });
+      }
+    });
   });
 }
 
@@ -581,9 +631,19 @@ function refreshAllTimers() {
     }
   });
 
-  if (activeTabId) {
-    startAllInactiveTimers(activeTabId);
-  }
+  // Check tab threshold before restarting timers
+  chrome.tabs.query({}, (allTabs) => {
+    if (allTabs.length > settings.tabThreshold && activeTabId) {
+      console.log(
+        `📊 Refreshing timers. Tab count: ${allTabs.length}, Threshold: ${settings.tabThreshold}`
+      );
+      startAllInactiveTimers(activeTabId);
+    } else {
+      console.log(
+        `📊 Not starting timers. Tab count: ${allTabs.length}, Threshold: ${settings.tabThreshold}`
+      );
+    }
+  });
 }
 
 function isWhitelisted(url) {
