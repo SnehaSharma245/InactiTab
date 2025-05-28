@@ -48,6 +48,8 @@ async function initializeTabs() {
     if (activeTabId) {
       startAllInactiveTimers(activeTabId);
     }
+    // Initialize protected tabs storage
+    updateProtectedTabsStorage();
   }, 1000);
 }
 
@@ -85,6 +87,9 @@ async function handleTabActivated(activeInfo) {
   startAllInactiveTimers(newActiveTabId);
 
   activeTabId = newActiveTabId;
+
+  // Update protected tabs storage when active tab changes
+  setTimeout(() => updateProtectedTabsStorage(), 500);
 }
 
 function handleTabCreated(tab) {
@@ -117,6 +122,9 @@ function handleTabCreated(tab) {
               // Start timer for this new tab if it's not active, not whitelisted, has no active media, and should be tracked
               resumeTimer(tab.id);
             }
+
+            // Update protected tabs storage after new tab is processed
+            updateProtectedTabsStorage();
           })
           .catch(() => {});
       }, 1000);
@@ -125,6 +133,8 @@ function handleTabCreated(tab) {
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
+  console.log("Tab updated:", tabId, changeInfo, tab.audible, tab.url);
+
   if (changeInfo.url) {
     const isUrlWhitelisted = isWhitelisted(tab.url);
     const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
@@ -154,12 +164,25 @@ function handleTabUpdated(tabId, changeInfo, tab) {
   }
 
   // Handle media state changes (audio, video, camera)
-  if (changeInfo.audible !== undefined || changeInfo.mutedInfo !== undefined) {
+  if (
+    changeInfo.audible !== undefined ||
+    changeInfo.mutedInfo !== undefined ||
+    changeInfo.url
+  ) {
+    console.log(
+      "Media state change detected for tab:",
+      tabId,
+      "audible:",
+      tab.audible
+    );
+
     const hasActiveMedia = hasMediaActivity(tab);
+    console.log("Has active media:", hasActiveMedia);
 
     if (hasActiveMedia) {
       // Tab has active media - pause tracking
       pauseAndResetTimer(tabId);
+      console.log("Paused tracking for tab with active media:", tabId);
     } else if (tabId !== activeTabId) {
       // Tab no longer has active media and is not the active tab
       const isUrlWhitelisted = isWhitelisted(tab.url);
@@ -170,12 +193,16 @@ function handleTabUpdated(tabId, changeInfo, tab) {
       }
     }
   }
+
+  // Update protected tabs storage whenever tab changes
+  setTimeout(() => updateProtectedTabsStorage(), 500); // Small delay to ensure tab state is updated
 }
 
 // Enhanced helper function to check if tab has any media activity
 function hasMediaActivity(tab) {
   // Check for audio (this works fine for YouTube music)
   if (tab.audible === true) {
+    console.log("Tab has audible audio:", tab.id, tab.url);
     return true;
   }
 
@@ -183,10 +210,12 @@ function hasMediaActivity(tab) {
   if (tab.mutedInfo) {
     // If tab is using camera or microphone (even if muted)
     if (tab.mutedInfo.reason === "capture") {
+      console.log("Tab has capture media:", tab.id);
       return true;
     }
     // Additional check for extension muting
     if (tab.mutedInfo.extensionId && !tab.mutedInfo.muted) {
+      console.log("Tab has extension media:", tab.id);
       return true;
     }
   }
@@ -209,50 +238,7 @@ function hasMediaActivity(tab) {
     try {
       const url = new URL(tab.url);
       if (videoCallDomains.some((domain) => url.hostname.includes(domain))) {
-        // For video call sites, inject script to check for active media
-        chrome.scripting
-          .executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-              try {
-                // Check if there are active media streams
-                if (
-                  navigator.mediaDevices &&
-                  navigator.mediaDevices.getUserMedia
-                ) {
-                  // Check for active video/audio elements
-                  const videoElements = document.querySelectorAll("video");
-                  const audioElements = document.querySelectorAll("audio");
-
-                  for (let video of videoElements) {
-                    if (!video.paused && video.currentTime > 0) {
-                      return true;
-                    }
-                  }
-
-                  for (let audio of audioElements) {
-                    if (!audio.paused && audio.currentTime > 0) {
-                      return true;
-                    }
-                  }
-
-                  // Check for camera/microphone permissions
-                  if (document.visibilityState === "visible") {
-                    return true; // Assume active if video call site is visible
-                  }
-                }
-              } catch (e) {
-                // If we can't check, assume active for video call sites
-                return true;
-              }
-              return false;
-            },
-          })
-          .catch(() => {
-            // If injection fails, assume video call site is active
-            return true;
-          });
-
+        console.log("Tab is video call site:", tab.id, url.hostname);
         // Return true for video call sites by default
         return true;
       }
@@ -263,6 +249,7 @@ function hasMediaActivity(tab) {
 
   // Additional check for media indicators (Chrome 88+)
   if (tab.mutedInfo && tab.mutedInfo.reason) {
+    console.log("Tab has mutedInfo reason:", tab.id, tab.mutedInfo.reason);
     return true;
   }
 
@@ -315,6 +302,9 @@ function handleTabRemoved(tabId) {
       });
     }
   });
+
+  // Update protected tabs storage after tab removal
+  updateProtectedTabsStorage();
 }
 
 function createContextMenu() {
@@ -335,7 +325,7 @@ function startAllInactiveTimers(exceptTabId) {
         chrome.tabs
           .get(tabId)
           .then((tab) => {
-            // Check all protection conditions
+            // Check all protection conditions for tracking
             const isUrlWhitelisted = isWhitelisted(tab.url);
             const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
             const hasActiveMedia = hasMediaActivity(tab);
@@ -516,7 +506,7 @@ function resumeTimer(tabId) {
       try {
         const tab = await chrome.tabs.get(tabId);
 
-        // Check if tab should be protected from tracking
+        // Check if tab should be protected from tracking (ALL protections)
         const isUrlWhitelisted = isWhitelisted(tab.url);
         const isPinnedAndProtected = settings.whitelistPinned && tab.pinned;
         const hasActiveMedia = hasMediaActivity(tab);
@@ -784,6 +774,94 @@ function loadWhitelist() {
 
 function saveWhitelist() {
   chrome.storage.local.set({ inactiTabWhitelist: whitelist });
+}
+
+// Add function to update protected tabs in storage
+function updateProtectedTabsStorage() {
+  chrome.tabs.query({}, (allTabs) => {
+    console.log(
+      "Updating protected tabs storage...",
+      allTabs.length,
+      "total tabs"
+    );
+
+    const protectedTabsData = allTabs
+      .filter((tab) => {
+        if (tab.active) return false; // Skip active tab
+        const isProtected = isTabCurrentlyProtected(tab);
+        console.log(
+          `Tab ${tab.id} (${tab.title}): protected=${isProtected}, audible=${tab.audible}, url=${tab.url}`
+        );
+        return isProtected;
+      })
+      .map((tab) => ({
+        id: tab.id,
+        title: tab.title
+          .replace(/^💤\s*/, "")
+          .replace(/^🔒\s*/, "")
+          .trim(),
+        url: tab.url,
+        favIconUrl: tab.favIconUrl,
+        origin: getTabOrigin(tab.url),
+        protectionReason: getTabProtectionReason(tab),
+        audible: tab.audible,
+        pinned: tab.pinned,
+      }));
+
+    console.log(
+      "Protected tabs found:",
+      protectedTabsData.length,
+      protectedTabsData
+    );
+    chrome.storage.local.set({ protectedTabs: protectedTabsData });
+  });
+}
+
+function getTabOrigin(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
+}
+
+function isTabCurrentlyProtected(tab) {
+  // Only include media-related and meeting protections
+  const hasActiveMedia = hasMediaActivity(tab);
+  const shouldNeverTrackTab = shouldNeverTrack(tab);
+
+  const result = hasActiveMedia || shouldNeverTrackTab;
+
+  console.log(`Protection check for tab ${tab.id}:`, {
+    url: tab.url,
+    audible: tab.audible,
+    hasActiveMedia,
+    shouldNeverTrackTab,
+    result,
+  });
+
+  return result;
+}
+
+function getTabProtectionReason(tab) {
+  // Check in same order as protection logic - only media/meeting related
+  if (tab.audible === true) {
+    return { type: "audio", text: "Playing audio" };
+  }
+
+  if (tab.mutedInfo && tab.mutedInfo.reason === "capture") {
+    return { type: "video", text: "Using camera/microphone" };
+  }
+
+  if (tab.mutedInfo && tab.mutedInfo.extensionId && !tab.mutedInfo.muted) {
+    return { type: "video", text: "Active media" };
+  }
+
+  if (shouldNeverTrack(tab)) {
+    return { type: "never-track", text: "Video call site" };
+  }
+
+  return { type: "unknown", text: "Media protected" };
 }
 
 // Initialize the extension when script loads
