@@ -9,9 +9,9 @@ const Header = () => {
       <div className="px-4 py-3 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
           <img
-            src="../../icons/favicon.png"
+            src="../../icons/icon2.png"
             alt="InactiTab"
-            className="w-8 h-8"
+            className="w-5 h-5"
           />
           <h1 className="brand-title">InactiTab</h1>
         </div>
