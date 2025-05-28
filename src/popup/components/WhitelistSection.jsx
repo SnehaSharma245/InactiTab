@@ -145,13 +145,15 @@ const WhitelistSection = ({
         </h3>
       </div>
 
-      <button
-        className="modern-button w-full mb-2"
-        onClick={handleWhitelistCurrent}
-      >
-        <Shield className="mr-2 w-4 h-4 inline" />
-        {feedback || "Whitelist Current Tab"}
-      </button>
+      <div className="flex justify-center">
+        <button
+          className="modern-button w-[60%] mb-4 flex items-center justify-center"
+          onClick={handleWhitelistCurrent}
+        >
+          <Shield className="mr-2 w-4 h-4 inline" />
+          {feedback || "Whitelist Current Tab"}
+        </button>
+      </div>
 
       <div className="modern-card p-4 mb-4">
         <input

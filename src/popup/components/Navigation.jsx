@@ -28,6 +28,13 @@ const Navigation = ({
         </button>
 
         <button
+          className={getNavBtnClasses("protected")}
+          onClick={() => onSectionChange("protected")}
+        >
+          Playing
+        </button>
+
+        <button
           className={getNavBtnClasses("inactive")}
           onClick={() => onSectionChange("inactive")}
         >

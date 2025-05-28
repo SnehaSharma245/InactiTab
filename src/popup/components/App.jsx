@@ -9,6 +9,7 @@ import SettingsSection from "./SettingsSection";
 import { useTheme } from "../hooks/useTheme";
 import { useSettings } from "../hooks/useSettings";
 import { useWhitelist } from "../hooks/useWhitelist";
+import ProtectedSection from "./ProtectedSection";
 
 const App = () => {
   const [currentSection, setCurrentSection] = useState("whitelist");
@@ -63,6 +64,12 @@ const App = () => {
             {currentSection === "inactive" && (
               <div className="animate-fadeIn">
                 <InactiveSection />
+              </div>
+            )}
+
+            {currentSection === "protected" && (
+              <div className="animate-fadeIn">
+                <ProtectedSection />
               </div>
             )}
 
