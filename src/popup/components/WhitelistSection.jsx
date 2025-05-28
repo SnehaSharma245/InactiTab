@@ -106,6 +106,17 @@ const WhitelistSection = ({
     }
   };
 
+  const handleTabClick = async (tab) => {
+    try {
+      // Switch to the clicked tab
+      await chrome.tabs.update(tab.id, { active: true });
+      // Close the extension popup after switching tabs
+      window.close();
+    } catch (error) {
+      console.error("Error switching to tab:", error);
+    }
+  };
+
   const isValidUrl = (string) => {
     try {
       new URL(string);
@@ -190,12 +201,14 @@ const WhitelistSection = ({
               {getSortedTabs().map((tab) => (
                 <div
                   key={tab.id}
-                  className={`p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                  className={`p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer
                              ${
                                tab.isWhitelisted
                                  ? "bg-emerald-500/5 border-l-2 border-emerald-500/30"
                                  : ""
                              }`}
+                  onClick={() => handleTabClick(tab)}
+                  title="Click to switch to this tab"
                 >
                   <div className="flex items-center">
                     <div className="flex items-center flex-1 min-w-0">
@@ -211,7 +224,7 @@ const WhitelistSection = ({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate text-gray-900 dark:text-white">
+                        <p className="text-xs font-medium truncate text-gray-900 dark:text-white hover:text-blue-400 transition-colors">
                           {tab.title}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate opacity-75">
