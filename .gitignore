@@ -16,6 +16,9 @@ npm-debug.log*
 # OS
 Thumbs.db
 
+dist.zip
+
+
 # crx and pem files
 *.crx
 *.pem
