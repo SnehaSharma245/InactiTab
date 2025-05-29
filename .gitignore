@@ -4,6 +4,8 @@ node_modules/
 # Build output
 dist/
 
+
+hosted-files/
 # Development
 .DS_Store
 *.log
