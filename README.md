@@ -53,7 +53,7 @@
 1. **Download the Extension**
 
    - Go to [GitHub Releases](https://github.com/yourusername/InactiTab2/releases)
-   - Download the latest `InactiTab-v2.x.x.zip` file
+   - Download the latest `inactitab.zip` file
    - Extract the ZIP file to a folder on your computer
 
 2. **Install in Chrome**
