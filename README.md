@@ -188,7 +188,7 @@ InactiTab automatically protects tabs from being tracked for inactivity based on
 ### Getting Help
 
 - 🌐 Visit our [Landing Page](https://inactitab.vercel.app) for demos and tutorials
-- 📧 Report issues on [GitHub Issues](https://github.com/yourusername/InactiTab2/issues)
+- 📧 Report issues on [GitHub Issues](https://github.com/SnehaSharma245/InactiTab-landing-page/releases/tag/v1.0.0)
 - 💬 Join our community discussions
 
 ---
@@ -201,8 +201,8 @@ We welcome contributions!
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/InactiTab2.git
-cd InactiTab2
+git clone https://github.com/SnehaSharma245/InactiTab.git
+cd InactiTab
 npm install
 
 # Start development
@@ -232,7 +232,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   
   **⭐ If you find InactiTab helpful, please consider giving it a star!**
   
-  **🌐 [Visit Landing Page](https://inactitab.vercel.app) | 📦 [Download Latest Release](https://github.com/yourusername/InactiTab2/releases)**
+  **🌐 [Visit Landing Page](https://inactitab.vercel.app) | 📦 [Download Latest Release](https://github.com/SnehaSharma245/InactiTab-landing-page/releases/tag/v1.0.0)**
   
   Made with ❤️ by [Your Name]
   
