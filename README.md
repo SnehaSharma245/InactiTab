@@ -52,7 +52,7 @@
 
 1. **Download the Extension**
 
-   - Go to [GitHub Releases](https://github.com/yourusername/InactiTab2/releases)
+   - Go to [GitHub Releases](https://github.com/SnehaSharma245/InactiTab-landing-page/releases/tag/v1.0.0)
    - Download the latest `inactitab.zip` file
    - Extract the ZIP file to a folder on your computer
 
