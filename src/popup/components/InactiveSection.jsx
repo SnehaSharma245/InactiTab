@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Moon, ExternalLink, Globe, RefreshCw, Clock } from "lucide-react";
+import { Moon, ExternalLink, Globe, RefreshCw, Clock, X } from "lucide-react";
 
 const InactiveSection = () => {
   const [inactiveTabs, setInactiveTabs] = useState([]);
@@ -50,6 +50,17 @@ const InactiveSection = () => {
     }
   };
 
+  const handleCloseTab = async (e, tabId) => {
+    e.stopPropagation(); // Prevent triggering the visit tab action
+    try {
+      await chrome.tabs.remove(tabId);
+      // Update the list after removing the tab
+      setInactiveTabs((prevTabs) => prevTabs.filter((tab) => tab.id !== tabId));
+    } catch (error) {
+      console.error("Error closing tab:", error);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="mb-4 flex justify-between items-center">
@@ -95,6 +106,10 @@ const InactiveSection = () => {
                         src={tab.favIconUrl}
                         alt=""
                         className="w-4 h-4 rounded"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "block";
+                        }}
                       />
                     ) : (
                       <Globe className="w-4 h-4 text-gray-400" />
@@ -132,16 +147,26 @@ const InactiveSection = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleVisitTab(tab);
-                    }}
-                    className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-blue-500/20 rounded"
-                    title="Visit tab"
-                  >
-                    <ExternalLink className="w-4 h-4 text-blue-400" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleVisitTab(tab);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-blue-500/20 rounded"
+                      title="Visit tab"
+                    >
+                      <ExternalLink className="w-4 h-4 text-blue-400" />
+                    </button>
+
+                    <button
+                      onClick={(e) => handleCloseTab(e, tab.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                      title="Close tab"
+                    >
+                      <X className="w-4 h-4 text-red-400" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
