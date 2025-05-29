@@ -153,22 +153,6 @@ InactiTab automatically protects tabs from being tracked for inactivity based on
 - **Lucide Icons** - Beautiful icon set
 - **Chrome Storage API** - Persistent settings storage
 
-### File Structure
-
-```
-InactiTab2/
-├── src/
-│   ├── background/          # Background script
-│   ├── popup/              # Extension popup UI
-│   │   ├── components/     # React components
-│   │   ├── hooks/          # Custom React hooks
-│   │   └── styles/         # CSS and styling
-│   └── content/            # Content scripts
-├── icons/                  # Extension icons
-├── manifest.json          # Extension manifest
-└── dist/                   # Built extension files
-```
-
 ### Permissions Used
 
 - `tabs` - Monitor and manage browser tabs
