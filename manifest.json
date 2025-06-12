@@ -3,8 +3,15 @@
   "name": "InactiTab",
   "version": "2.0",
   "description": "A Chrome extension to manage inactive tabs efficiently.",
-  "permissions": ["tabs", "storage", "activeTab", "tabCapture", "scripting"],
-  "optional_permissions": ["system.cpu", "system.memory", "management"],
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "tabCapture",
+    "scripting",
+    "processes"
+  ],
+  "optional_permissions": ["processes"],
   "background": {
     "service_worker": "src/background/index.js",
     "type": "module"
