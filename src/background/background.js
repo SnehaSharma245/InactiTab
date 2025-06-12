@@ -9,6 +9,12 @@ import {
   loadWhitelist,
   saveWhitelist,
 } from "./utils/storageUtils.js";
+import {
+  getTabsMemoryUsage,
+  getMemoryStatistics,
+  getChromeTaskManagerData,
+  startRealTimeCpuMonitoring,
+} from "./utils/memoryUtils.js";
 
 // Global instances
 let tabManager = null;
@@ -110,11 +116,76 @@ async function handleMessage(message, sender, sendResponse) {
         }
         break;
 
+      case "getMemoryUsage":
+        console.log("Background: Fetching CPU data...");
+
+        try {
+          const cpuData = await getTabsMemoryUsage();
+
+          // Convert Map to plain object
+          const cpuObject = {};
+          cpuData.forEach((value, key) => {
+            cpuObject[key] = value;
+          });
+
+          console.log(
+            `Background: CPU data retrieved for ${
+              Object.keys(cpuObject).length
+            } tabs`
+          );
+          sendResponse({ memoryData: cpuObject });
+        } catch (error) {
+          console.error("Error getting CPU data:", error);
+          sendResponse({ memoryData: {}, error: error.message });
+        }
+        break;
+
+      case "testProcesses":
+        try {
+          if (chrome.processes) {
+            console.log("Processes API is available");
+            sendResponse({
+              status: "available",
+              message: "Chrome processes API is accessible",
+            });
+          } else {
+            console.log("Processes API not available");
+            sendResponse({
+              status: "unavailable",
+              message:
+                "Chrome processes API not found - using estimation fallback",
+            });
+          }
+        } catch (error) {
+          console.error("Error testing processes API:", error);
+          sendResponse({
+            status: "error",
+            message: error.message,
+          });
+        }
+        break;
+
+      case "getMemoryStats":
+        const stats = await getMemoryStatistics();
+        sendResponse({ stats });
+        break;
+
+      case "getChromeTaskManager":
+        const taskManagerData = await getChromeTaskManagerData();
+        sendResponse({ taskManagerData });
+        break;
+
+      case "startCpuMonitoring":
+        // This would be used for real-time monitoring if needed
+        sendResponse({ status: "monitoring started" });
+        break;
+
       default:
         console.warn("Unknown message action:", message.action);
     }
   } catch (error) {
     console.error("Error handling message:", error);
+    sendResponse({ error: error.message });
   }
 }
 
