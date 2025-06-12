@@ -32,14 +32,26 @@ const AutoclosedSection = () => {
       // Remove duplicates and already opened tabs, also clean titles
       const filteredTabs = (data.autoclosedTabs || []).reduce((acc, tab) => {
         if (!openedUrls.has(tab.url) && !acc.some((t) => t.url === tab.url)) {
-          // Clean title from sleep and lock icons
-          const cleanTitle = tab.title
-            .replace(/^💤\s*/, "")
-            .replace(/^🔒\s*/, "")
-            .trim();
+          // Clean title from sleep and other indicators
+          let cleanTitle = (tab.title || "")
+            .replace(/^[💤🔒🎵]\s*/, "") // Remove emoji at start
+            .replace(/[💤🔒🎵]/g, "") // Remove any remaining emojis
+            .trim(); // Remove extra spaces
+
+          // Fallback if title becomes empty
+          if (!cleanTitle) {
+            try {
+              const hostname = new URL(tab.url).hostname;
+              cleanTitle = hostname.replace("www.", "") || "Closed Tab";
+            } catch {
+              cleanTitle = "Closed Tab";
+            }
+          }
+
           acc.push({
             ...tab,
             title: cleanTitle,
+            originalTitle: tab.title || cleanTitle,
           });
         }
         return acc;

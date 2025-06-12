@@ -50,74 +50,70 @@ const InactiveSection = () => {
     });
   };
 
-  // Load inactive tabs with CPU data
+  // Enhanced function to load tabs with memory data
   const loadInactiveTabsWithMemory = async () => {
     try {
       setIsRefreshing(true);
+
+      // Test processes API first
+      const testResult = await testProcessesAPI();
+      console.log("Processes API test:", testResult);
 
       // Get inactive tabs from storage
       const { inactiveTabs = [] } = await chrome.storage.local.get(
         "inactiveTabs"
       );
 
-      if (inactiveTabs.length === 0) {
-        setInactiveTabs([]);
-        return;
-      }
-
-      // Get CPU data
+      // Get memory usage data from background
       const memoryData = await requestMemoryData();
+      console.log("Memory data received:", memoryData); // Debug log
 
-      // Get all tabs and filter inactive ones
+      // Get all tabs and filter by inactive ones
       const tabs = await chrome.tabs.query({});
 
       const inactiveTabsData = tabs
         .filter((tab) => inactiveTabs.includes(tab.id))
         .map((tab) => {
-          // Clean the title properly - remove ALL emoji indicators and extra spaces
-          let cleanTitle = tab.title
-            .replace(/^[💤🔒🎵]\s*/, "") // Remove emoji at start
-            .replace(/[💤🔒🎵]/g, "") // Remove any remaining emojis
-            .trim(); // Remove extra spaces
-
-          // Fallback if title becomes empty
-          if (!cleanTitle) {
+          // Get original favicon URL
+          let originalFavicon = tab.favIconUrl;
+          if (tab.favIconUrl && tab.favIconUrl.startsWith("data:")) {
             try {
-              const hostname = new URL(tab.url).hostname;
-              cleanTitle = hostname.replace("www.", "") || "Untitled Tab";
-            } catch {
-              cleanTitle = "Untitled Tab";
+              const url = new URL(tab.url);
+              originalFavicon = `${url.protocol}//${url.hostname}/favicon.ico`;
+            } catch (e) {
+              originalFavicon = null;
             }
           }
 
-          // Get CPU info for this tab
+          // Get memory info for this tab - now it's a plain object
           const memoryInfo = memoryData[tab.id];
+          console.log(`Tab ${tab.id} (${tab.title}) CPU data:`, memoryInfo);
 
           return {
             id: tab.id,
-            title: cleanTitle, // Clean title for display
-            originalTitle: tab.title, // Keep original for tracking
+            title: tab.title.replace(/^💤\s*/, "").replace(/^🔒\s*/, ""),
             url: tab.url,
-            favIconUrl: tab.favIconUrl,
+            favIconUrl: originalFavicon,
             origin: new URL(tab.url).origin,
-            isWhitelisted: tab.title.startsWith("🔒"),
-            isSleeping: tab.title.startsWith("💤"),
-            isMediaActive: tab.title.startsWith("🎵"),
+            isWhitelisted: false,
+            isSleeping: true,
             memory: memoryInfo || { memory: 0, cpu: 0.1, estimated: true },
           };
         })
-        .sort((a, b) => (b.memory?.cpu || 0) - (a.memory?.cpu || 0));
+        .sort((a, b) => (b.memory?.cpu || 0) - (a.memory?.cpu || 0)); // Sort by CPU usage (highest first)
 
+      console.log("Final inactive tabs data:", inactiveTabsData); // Debug log
       setInactiveTabs(inactiveTabsData);
     } catch (error) {
-      console.error("Error loading inactive tabs:", error);
+      console.error("Error loading inactive tabs with memory:", error);
+      // Fallback to original function
       loadInactiveTabs();
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Original loadInactiveTabs function for fallback
+  // Original loadInactiveTabs function (unchanged)
   const loadInactiveTabs = async () => {
     try {
       setIsRefreshing(true);
@@ -130,31 +126,24 @@ const InactiveSection = () => {
       const inactiveTabsData = tabs
         .filter((tab) => inactiveTabs.includes(tab.id))
         .map((tab) => {
-          // Clean title properly
-          let cleanTitle = tab.title
-            .replace(/^[💤🔒🎵]\s*/, "")
-            .replace(/[💤🔒🎵]/g, "")
-            .trim();
-
-          if (!cleanTitle) {
+          let originalFavicon = tab.favIconUrl;
+          if (tab.favIconUrl && tab.favIconUrl.startsWith("data:")) {
             try {
-              const hostname = new URL(tab.url).hostname;
-              cleanTitle = hostname.replace("www.", "") || "Untitled Tab";
-            } catch {
-              cleanTitle = "Untitled Tab";
+              const url = new URL(tab.url);
+              originalFavicon = `${url.protocol}//${url.hostname}/favicon.ico`;
+            } catch (e) {
+              originalFavicon = null;
             }
           }
 
           return {
             id: tab.id,
-            title: cleanTitle,
-            originalTitle: tab.title,
+            title: tab.title.replace(/^💤\s*/, "").replace(/^🔒\s*/, ""),
             url: tab.url,
-            favIconUrl: tab.favIconUrl,
+            favIconUrl: originalFavicon,
             origin: new URL(tab.url).origin,
-            isWhitelisted: tab.title.startsWith("🔒"),
-            isSleeping: tab.title.startsWith("💤"),
-            isMediaActive: tab.title.startsWith("🎵"),
+            isWhitelisted: false,
+            isSleeping: true,
           };
         });
 
@@ -359,7 +348,6 @@ const InactiveSection = () => {
                     ) : (
                       <Globe className="w-4 h-4 text-gray-400" />
                     )}
-                    {/* Remove all status indicator dots */}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -373,8 +361,12 @@ const InactiveSection = () => {
                         {tab.origin}
                       </p>
                       <div className="flex items-center gap-2">
-                        {/* Remove all status badges - no sleeping, protected, media indicators */}
-                        {/* Only CPU usage display */}
+                        {tab.isSleeping && (
+                          <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">
+                            Sleeping
+                          </span>
+                        )}
+                        {/* CPU usage display only */}
                         {tab.memory && (
                           <div
                             className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${

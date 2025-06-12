@@ -26,14 +26,32 @@ const WhitelistSection = ({
   const loadOpenedTabs = async () => {
     try {
       const tabs = await chrome.tabs.query({});
-      const tabsData = tabs.map((tab) => ({
-        id: tab.id,
-        title: tab.title.replace(/^💤\s*/, "").replace(/^🔒\s*/, ""), // Clean sleep and lock icons from title
-        url: tab.url,
-        favIconUrl: tab.favIconUrl,
-        origin: new URL(tab.url).origin,
-        isWhitelisted: isTabWhitelisted(tab.url),
-      }));
+      const tabsData = tabs.map((tab) => {
+        // Clean title properly - remove ALL emoji indicators
+        let cleanTitle = tab.title
+          .replace(/^[💤🔒🎵]\s*/, "") // Remove emoji at start
+          .replace(/[💤🔒🎵]/g, "") // Remove any remaining emojis
+          .trim(); // Remove extra spaces
+
+        // Fallback if title becomes empty
+        if (!cleanTitle) {
+          try {
+            const hostname = new URL(tab.url).hostname;
+            cleanTitle = hostname.replace("www.", "") || "Untitled Tab";
+          } catch {
+            cleanTitle = "Untitled Tab";
+          }
+        }
+
+        return {
+          id: tab.id,
+          title: cleanTitle, // Always show clean title
+          url: tab.url,
+          favIconUrl: tab.favIconUrl,
+          origin: new URL(tab.url).origin,
+          isWhitelisted: isTabWhitelisted(tab.url),
+        };
+      });
 
       setOpenedTabs(tabsData);
     } catch (error) {
@@ -214,51 +232,53 @@ const WhitelistSection = ({
                 >
                   <div className="flex items-center">
                     <div className="flex items-center flex-1 min-w-0">
-                      <div className="relative mr-2 flex-shrink-0">
+                      <div className="relative mr-3 flex-shrink-0">
                         {tab.favIconUrl ? (
                           <img
                             src={tab.favIconUrl}
                             alt=""
-                            className="w-3 h-3 rounded-full"
+                            className="w-4 h-4 rounded"
+                            onError={(e) => {
+                              e.target.src =
+                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23999' d='M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm0 14c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z'/%3E%3C/svg%3E";
+                            }}
                           />
                         ) : (
-                          <Globe className="w-3 h-3 text-gray-400" />
+                          <Globe className="w-4 h-4 text-gray-400" />
                         )}
                       </div>
+
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate text-gray-900 dark:text-white hover:text-blue-400 transition-colors">
-                          {tab.title}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate opacity-75">
-                          {tab.origin}
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-100 truncate">
+                            {tab.title}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-gray-400 truncate">
+                            {tab.origin}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTabWhitelistToggle(
+                                  tab,
+                                  !tab.isWhitelisted
+                                );
+                              }}
+                              className={`text-xs px-3 py-1 rounded-lg transition-colors ${
+                                tab.isWhitelisted
+                                  ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                  : "bg-gray-500/20 text-gray-400 hover:bg-gray-500/30"
+                              }`}
+                            >
+                              {tab.isWhitelisted ? "Remove" : "Add"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTabWhitelistToggle(tab, !tab.isWhitelisted);
-                      }}
-                      className={`ml-2 w-7 h-7 rounded-xl flex items-center justify-center 
-                                 transition-all duration-300 hover:scale-105 shadow-sm
-                                 border border-opacity-20 backdrop-blur-sm
-                                 ${
-                                   tab.isWhitelisted
-                                     ? "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 border-red-400 shadow-red-500/20"
-                                     : "bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-emerald-400 shadow-emerald-500/20"
-                                 }`}
-                      title={
-                        tab.isWhitelisted
-                          ? "Remove from whitelist"
-                          : "Add to whitelist"
-                      }
-                    >
-                      {tab.isWhitelisted ? (
-                        <Minus className="w-3.5 h-3.5 text-white font-bold" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5 text-white font-bold" />
-                      )}
-                    </button>
                   </div>
                 </div>
               ))}

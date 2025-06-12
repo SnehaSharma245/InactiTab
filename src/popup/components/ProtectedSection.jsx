@@ -32,7 +32,27 @@ const ProtectedSection = () => {
       );
 
       console.log("Protected tabs from storage:", protectedTabs);
-      setProtectedTabs(protectedTabs);
+
+      // Ensure original favicons are shown in popup
+      const tabsWithOriginalFavicons = protectedTabs.map((tab) => {
+        let originalFavicon = tab.favIconUrl;
+
+        if (tab.favIconUrl && tab.favIconUrl.startsWith("data:")) {
+          try {
+            const url = new URL(tab.url);
+            originalFavicon = `${url.protocol}//${url.hostname}/favicon.ico`;
+          } catch (e) {
+            originalFavicon = null;
+          }
+        }
+
+        return {
+          ...tab,
+          favIconUrl: originalFavicon, // Use original favicon in popup
+        };
+      });
+
+      setProtectedTabs(tabsWithOriginalFavicons);
     } catch (error) {
       console.error("Error loading protected tabs:", error);
     } finally {
