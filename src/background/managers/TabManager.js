@@ -187,6 +187,11 @@ export class TabManager {
 
     this.inactiveTabs.delete(tabId);
 
+    // Update storage
+    chrome.storage.local.set({
+      inactiveTabs: Array.from(this.inactiveTabs),
+    });
+
     chrome.tabs.query({}, (allTabs) => {
       if (allTabs.length <= this.settings.tabThreshold) {
         this.tabTimers.forEach((timer) => {
@@ -230,12 +235,17 @@ export class TabManager {
   async markTabInactive(tabId) {
     this.inactiveTabs.add(tabId);
 
+    // Store inactive tabs in chrome storage for popup access
+    await chrome.storage.local.set({
+      inactiveTabs: Array.from(this.inactiveTabs),
+    });
+
     if (this.settings.autoClose) {
       try {
         const tab = await chrome.tabs.get(tabId);
         const tabInfo = {
           url: tab.url,
-          title: tab.title,
+          title: cleanTabTitle(tab.title), // Use cleaned title
           favIconUrl: tab.favIconUrl,
           timestamp: Date.now(),
         };
@@ -246,6 +256,7 @@ export class TabManager {
         console.error("Error saving tab to history:", error);
       }
     } else {
+      // Only add favicon badge, no title modification
       await injectSleepIndicator(tabId);
     }
   }
@@ -257,6 +268,12 @@ export class TabManager {
   async markTabActive(tabId) {
     if (this.inactiveTabs.has(tabId)) {
       this.inactiveTabs.delete(tabId);
+
+      // Update storage
+      await chrome.storage.local.set({
+        inactiveTabs: Array.from(this.inactiveTabs),
+      });
+
       await removeSleepIndicator(tabId);
     }
   }
