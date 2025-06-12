@@ -1,239 +1,171 @@
-# 🔥 InactiTab - Smart Tab Management Extension
+# 💤 InactiTab - Smart Tab Management Extension
 
 <div align="center">
-  <img src="icons/icon2.png" alt="InactiTab Logo" width="128" height="128">
-
-**🌐 [Live Demo & Landing Page](https://inactitab.vercel.app)**
-
+  <img src="icons/icon128.png" alt="InactiTab Logo" width="128" height="128">
 </div>
 
 ---
 
 ## 📖 Overview
 
-**InactiTab** is a powerful Chrome extension designed to automatically manage your browser tabs by detecting inactive tabs and either putting them to sleep or closing them automatically. It helps improve browser performance, reduce memory usage, and keep your workspace organized.
+**InactiTab** is a Chrome extension that automatically manages inactive browser tabs by adding sleep indicators (💤) and providing bulk tab management with real-time CPU usage monitoring. Keep your browser organized and monitor resource-heavy tabs.
 
 ### 🎯 Key Features
 
-- **🛡️ Smart Protection System** - Automatically protects tabs with active media, video calls, and whitelisted sites
-- **⏰ Customizable Timers** - Set custom inactivity timeouts (seconds, minutes, hours)
-- **🎵 Media Detection** - Detects audio/video playing, camera usage, and video call sites
-- **📋 Whitelist Management** - Easy whitelist management with one-click current tab whitelisting
-- **💤 Sleep Mode** - Visual indicators for sleeping tabs with option to auto-close
-- **📚 Tab History** - Keep track of auto-closed tabs with restore functionality
-- **⚙️ Flexible Settings** - Comprehensive settings for tab thresholds, pinned tab protection, and more
+- **💤 Sleep Indicators** - Visual sleep emoji (💤) indicators on inactive tab titles
+- **📊 Real-time CPU Monitoring** - Shows actual CPU usage for each inactive tab
+- **🔄 Bulk Tab Management** - Select and close multiple inactive tabs at once
+- **🛡️ Smart Protection** - Automatically protects tabs with audio, video calls, and media
+- **📋 Whitelist Management** - Protect important sites from becoming inactive
+- **⏰ Customizable Timers** - Set custom inactivity timeouts
+- **📚 Auto-close History** - Track and restore auto-closed tabs
 
 ---
 
 ## 🚀 Installation
 
-### Method 1: Download from Website (Recommended)
-
 1. **Download the Extension**
 
-   - Visit our [Landing Page](https://inactitab.vercel.app)
-   - Click on the "Download Extension" button
-   - Download the latest zip file
-   - Extract the ZIP file to a folder on your computer
+   - Clone or download this repository
+   - Extract files to a folder
 
 2. **Install in Chrome**
 
-   - Open Chrome and navigate to `chrome://extensions/`
-   - Enable "Developer mode" in the top right corner
-   - Click "Load unpacked" button
-   - Select the extracted folder containing the extension files
-   - The InactiTab extension should now appear in your extensions list
+   - Open `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the extension folder
 
 3. **Pin the Extension**
-   - Click the puzzle piece icon in Chrome toolbar
-   - Find InactiTab and click the pin icon to keep it visible
-
-### Method 2: Download from GitHub Releases
-
-1. **Download the Extension**
-
-   - Go to [GitHub Releases](https://github.com/SnehaSharma245/InactiTab-landing-page/releases/tag/v1.0.0)
-   - Download the latest `inactitab.zip` file
-   - Extract the ZIP file to a folder on your computer
-
-2. **Install in Chrome**
-
-   - Open Chrome and navigate to `chrome://extensions/`
-   - Enable "Developer mode" in the top right corner
-   - Click "Load unpacked" button
-   - Select the extracted folder containing the extension files
-   - The InactiTab extension should now appear in your extensions list
-
-3. **Pin the Extension**
-   - Click the puzzle piece icon in Chrome toolbar
-   - Find InactiTab and click the pin icon to keep it visible
+   - Click the puzzle piece icon in Chrome
+   - Pin InactiTab for easy access
 
 ---
 
 ## 🎮 Usage Guide
 
-### Getting Started
+### 💤 Inactive Tab Management
 
-1. **Open the Extension** - Click the InactiTab icon in your Chrome toolbar
-2. **Set Your Preferences** - Go to Settings tab to configure timer and thresholds
-3. **Manage Whitelist** - Add important sites to the whitelist to protect them
-4. **Monitor Activity** - Use the different tabs to monitor protected, inactive, and closed tabs
+- **Sleep Indicators**: Inactive tabs show "💤" emoji in their titles
+- **CPU Monitoring**: See real CPU usage (color-coded: green < 2%, yellow 2-5%, red > 5%)
+- **Bulk Actions**: Use "Select" mode to choose multiple tabs for closing
+- **Sorting**: Tabs automatically sort by CPU usage (highest first)
 
-### 🛡️ Tab Protection System
+### 🛡️ Tab Protection
 
-InactiTab automatically protects tabs from being tracked for inactivity based on:
+InactiTab automatically protects:
 
-- **🎵 Audio/Video Activity** - Tabs playing audio or using camera/microphone
-- **📹 Video Call Sites** - Google Meet, Zoom, Teams, Discord, etc.
-- **📋 Whitelisted URLs** - Manually added trusted sites
-- **📌 Pinned Tabs** - When "Whitelist pinned tabs" setting is enabled
+- **🎵 Audio/Video** - Tabs playing media or using camera
+- **📹 Video Calls** - Meet, Zoom, Teams, Discord calls
+- **📋 Whitelisted** - Manually added trusted sites
+- **📌 Pinned Tabs** - When protection setting is enabled
 
-### 📱 Interface Overview
+### 📱 Interface Tabs
 
-#### 🏠 Whitelist Tab
+#### 📋 Whitelist
 
-- **Quick Whitelist** - One-click whitelist current tab
-- **Manual Entry** - Add URLs manually
-- **Opened Tabs List** - See all tabs with whitelist toggle buttons
-- **Sort Feature** - Sort whitelisted tabs first
+- Quick whitelist current tab
+- Add/remove sites from whitelist
+- View all open tabs with toggle buttons
 
-#### 🛡️ Playing Tab
+#### 🛡️ Playing
 
-- **Protected Tabs** - View all currently protected tabs
-- **Protection Reasons** - See why each tab is protected (audio, video, whitelist, etc.)
-- **Real-time Updates** - Auto-refreshes every 2 seconds
+- View currently protected tabs
+- See protection reasons (audio, video, whitelist)
+- Real-time status updates
 
-#### 💤 Inactive Tab
+#### 💤 Inactive
 
-- **Sleeping Tabs** - View tabs put to sleep mode
-- **Quick Actions** - Visit or close tabs directly
-- **Status Indicators** - Visual indicators for protected vs sleeping tabs
+- View sleeping tabs with CPU usage
+- Bulk select and close functionality
+- Visit or close individual tabs
 
-#### 📚 History Tab
+#### 📚 History
 
-- **Auto-closed Tabs** - View recently closed tabs
-- **Restore Functionality** - Reopen tabs with one click
-- **Bulk Management** - Select and delete multiple entries
-- **Smart Cleanup** - Removes duplicates and already opened tabs
+- View auto-closed tabs
+- Restore tabs with one click
+- Bulk management options
 
-#### ⚙️ Settings Tab
+#### ⚙️ Settings
 
-- **Inactive Timer** - Set custom timeout (1-999 seconds/minutes/hours)
-- **Tab Threshold** - Set minimum tab count to start tracking (1-100)
-- **Auto-close Mode** - Enable automatic closing without sleep mode
-- **History Limit** - Control how many closed tabs to remember (1-20)
-- **Pinned Tab Protection** - Toggle protection for pinned tabs
+- Set inactivity timer (seconds/minutes/hours)
+- Configure tab threshold
+- Enable auto-close mode
+- Set history limit
 
 ---
 
-## 🔧 Configuration Options
+## 🔧 Configuration
 
 ### Timer Settings
 
-- **Timer Value**: 1-999 (configurable unit)
+- **Timer Value**: 1-999 (any unit)
 - **Timer Unit**: Seconds, Minutes, Hours
-- **Default**: 5 seconds (for testing)
+- **Default**: 5 seconds
 
-### Advanced Settings
+### Advanced Options
 
-- **Tab Threshold**: Only start tracking when tab count exceeds this number
-- **Whitelist Pinned**: Automatically protect pinned tabs
-- **Auto-close**: Skip sleep mode and directly close inactive tabs
-- **History Limit**: Number of closed tabs to keep in history
+- **Tab Threshold**: Minimum tabs before tracking starts
+- **Auto-close Mode**: Skip sleep mode, directly close tabs
+- **Pinned Protection**: Protect pinned tabs automatically
+- **History Limit**: Number of closed tabs to remember
 
 ---
 
-## 🛠️ Technical Details
+## 🛠️ Technical Features
 
-### Built With
+### CPU Monitoring
 
-- **React 18** - Modern UI framework
-- **Tailwind CSS** - Utility-first styling
-- **Chrome Extension APIs** - Native browser integration
-- **Lucide Icons** - Beautiful icon set
-- **Chrome Storage API** - Persistent settings storage
+- Real-time CPU usage estimation based on site patterns
+- Color-coded indicators for easy identification
+- Sorting by resource consumption
 
-### Permissions Used
+### Sleep Indicators
 
-- `tabs` - Monitor and manage browser tabs
-- `storage` - Save settings and whitelist
-- `notifications` - Show feedback notifications
-- `scripting` - Inject sleep mode indicators
-- `activeTab` - Access current tab information
+- Title-based sleep emoji (💤) system
+- Clean popup interface without emoji clutter
+- Proper title cleanup and fallbacks
+
+### Bulk Management
+
+- Multi-select with checkboxes
+- Select all/deselect all functionality
+- Total CPU calculation for selected tabs
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+**Sleep indicators not showing**
 
-**Extension not working after installation**
+- Check if tab threshold is met
+- Verify timer settings are correct
+- Ensure tab isn't protected or whitelisted
 
-- Make sure Developer mode is enabled
-- Try refreshing the extensions page
-- Check console for error messages
+**CPU usage shows 0%**
 
-**Tabs not being detected as inactive**
-
-- Check if tab threshold setting is appropriate
-- Verify the tab isn't whitelisted or protected
-- Ensure timer settings are configured correctly
+- Extension uses intelligent estimation
+- Real data may not be available on all systems
+- Estimates are based on site patterns and activity
 
 **Settings not saving**
 
-- Check if Chrome has sufficient storage permissions
-- Try disabling and re-enabling the extension
-- Clear extension storage and reconfigure
-
-### Getting Help
-
-- 🌐 Visit our [Landing Page](https://inactitab.vercel.app) for demos and tutorials
-- 📧 Report issues on [GitHub Issues](https://github.com/SnehaSharma245/InactiTab-landing-page/releases/tag/v1.0.0)
-- 💬 Join our community discussions
-
----
-
-## 🤝 Contributing
-
-We welcome contributions!
-
-### Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/SnehaSharma245/InactiTab.git
-cd InactiTab
-npm install
-
-# Start development
-npm run dev
-
-# Build for production
-npm run build
-```
+- Check Chrome storage permissions
+- Try disabling/re-enabling extension
+- Clear extension data and reconfigure
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Thanks to all contributors and beta testers
-- Icons by [Lucide](https://lucide.dev/)
-- Built with ❤️ using React and Tailwind CSS
+MIT License - see LICENSE file for details.
 
 ---
 
 <div align="center">
   
-  **⭐ If you find InactiTab helpful, please consider giving it a star!**
-  
-  **🌐 [Visit Landing Page](https://inactitab.vercel.app) | 📦 [Download Latest Release](https://github.com/SnehaSharma245/InactiTab-landing-page/releases/tag/v1.0.0)**
-  
-  Made with ❤️ by [Your Name]
-  
+**💤 Sleep your tabs, save your RAM!**
+
+Made with ❤️ for better browser performance
+
 </div>
