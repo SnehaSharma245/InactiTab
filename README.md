@@ -1,7 +1,7 @@
 # 💤 InactiTab - Smart Tab Management Extension
 
 <div align="center">
-  <img src="icons/icon128.png" alt="InactiTab Logo" width="128" height="128">
+  <img src="icons/icon2.png" alt="InactiTab Logo" width="128" height="128">
 </div>
 
 ---
