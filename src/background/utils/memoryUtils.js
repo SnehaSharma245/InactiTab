@@ -19,24 +19,17 @@ function isProcessesAPIAvailable() {
  * @returns {Promise<Map>} Map of tabId to CPU info
  */
 export async function getTabsMemoryUsage() {
-  console.log("Starting CPU data fetch...");
-
   // Try real processes API first
   if (isProcessesAPIAvailable()) {
     try {
-      console.log("Attempting to use Chrome processes API...");
       const realData = await getRealProcessData();
       if (realData.size > 0) {
-        console.log("Successfully retrieved real process data");
         return realData;
       }
     } catch (error) {
       console.error("Failed to get real process data:", error);
     }
   } else {
-    console.log(
-      "Chrome processes API not available, using enhanced estimation"
-    );
   }
 
   // Fallback to enhanced estimation
@@ -55,8 +48,6 @@ async function getRealProcessData() {
           reject(chrome.runtime.lastError);
           return;
         }
-
-        console.log("Raw processes data:", processes);
 
         chrome.tabs.query({}, (tabs) => {
           const cpuMap = new Map();
@@ -105,8 +96,6 @@ async function getRealProcessData() {
 async function getEnhancedEstimation() {
   const tabs = await chrome.tabs.query({});
   const cpuMap = new Map();
-
-  console.log(`Generating enhanced CPU estimates for ${tabs.length} tabs`);
 
   for (const tab of tabs) {
     const cpuUsage = calculateRealisticCPU(tab);

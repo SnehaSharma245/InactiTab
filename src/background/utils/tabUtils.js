@@ -33,18 +33,15 @@ const NEVER_TRACK_DOMAINS = [
 export function hasMediaActivity(tab) {
   // Check for audio
   if (tab.audible === true) {
-    console.log("Tab has audible audio:", tab.id, tab.url);
     return true;
   }
 
   // Check for camera/microphone indicators
   if (tab.mutedInfo) {
     if (tab.mutedInfo.reason === "capture") {
-      console.log("Tab has capture media:", tab.id);
       return true;
     }
     if (tab.mutedInfo.extensionId && !tab.mutedInfo.muted) {
-      console.log("Tab has extension media:", tab.id);
       return true;
     }
   }
@@ -54,7 +51,6 @@ export function hasMediaActivity(tab) {
     try {
       const url = new URL(tab.url);
       if (VIDEO_CALL_DOMAINS.some((domain) => url.hostname.includes(domain))) {
-        console.log("Tab is video call site:", tab.id, url.hostname);
         return true;
       }
     } catch (e) {
@@ -64,7 +60,6 @@ export function hasMediaActivity(tab) {
 
   // Additional check for media indicators
   if (tab.mutedInfo && tab.mutedInfo.reason) {
-    console.log("Tab has mutedInfo reason:", tab.id, tab.mutedInfo.reason);
     return true;
   }
 

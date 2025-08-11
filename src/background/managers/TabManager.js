@@ -128,8 +128,6 @@ export class TabManager {
    * @param {Object} tab - Updated tab
    */
   handleTabUpdated(tabId, changeInfo, tab) {
-    console.log("Tab updated:", tabId, changeInfo, tab.audible, tab.url);
-
     if (changeInfo.url) {
       const isUrlWhitelisted = isWhitelisted(tab.url, this.whitelist);
       this.updateTabIcon(tabId, isUrlWhitelisted);

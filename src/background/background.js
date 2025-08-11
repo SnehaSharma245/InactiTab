@@ -12,8 +12,6 @@ import {
 import {
   getTabsMemoryUsage,
   getMemoryStatistics,
-  getChromeTaskManagerData,
-  startRealTimeCpuMonitoring,
 } from "./utils/memoryUtils.js";
 
 // Global instances
@@ -37,8 +35,6 @@ async function init() {
     // Setup event listeners
     setupEventListeners();
     createContextMenu();
-
-    console.log("InactiTab initialized successfully");
   } catch (error) {
     console.error("Error initializing InactiTab:", error);
   }
@@ -69,15 +65,6 @@ function setupEventListeners() {
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     tabManager?.handleTabUpdated(tabId, changeInfo, tab);
-  });
-
-  // Extension lifecycle events
-  chrome.runtime.onStartup.addListener(() => {
-    console.log("InactiTab started");
-  });
-
-  chrome.runtime.onInstalled.addListener(() => {
-    console.log("InactiTab installed");
   });
 }
 
@@ -117,8 +104,6 @@ async function handleMessage(message, sender, sendResponse) {
         break;
 
       case "getMemoryUsage":
-        console.log("Background: Fetching CPU data...");
-
         try {
           const cpuData = await getTabsMemoryUsage();
 
@@ -128,11 +113,6 @@ async function handleMessage(message, sender, sendResponse) {
             cpuObject[key] = value;
           });
 
-          console.log(
-            `Background: CPU data retrieved for ${
-              Object.keys(cpuObject).length
-            } tabs`
-          );
           sendResponse({ memoryData: cpuObject });
         } catch (error) {
           console.error("Error getting CPU data:", error);
@@ -143,13 +123,11 @@ async function handleMessage(message, sender, sendResponse) {
       case "testProcesses":
         try {
           if (chrome.processes) {
-            console.log("Processes API is available");
             sendResponse({
               status: "available",
               message: "Chrome processes API is accessible",
             });
           } else {
-            console.log("Processes API not available");
             sendResponse({
               status: "unavailable",
               message:
@@ -168,11 +146,6 @@ async function handleMessage(message, sender, sendResponse) {
       case "getMemoryStats":
         const stats = await getMemoryStatistics();
         sendResponse({ stats });
-        break;
-
-      case "getChromeTaskManager":
-        const taskManagerData = await getChromeTaskManagerData();
-        sendResponse({ taskManagerData });
         break;
 
       case "startCpuMonitoring":
