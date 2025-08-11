@@ -4,24 +4,22 @@
     <meta charset="UTF-8" />
     <title>InactiTab Settings</title>
     <style>
-      body {
+      html,
+      body,
+      #root {
         min-width: 320px;
         min-height: 400px;
-        margin: 0;
-        padding: 0;
         width: 100vw;
         height: 100vh;
+        margin: 0;
+        padding: 0;
         box-sizing: border-box;
-      }
-      #root {
-        width: 100vw;
-        min-height: 100vh;
-        height: 100%;
+        overflow: auto;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <script src="popup.js"></script>
+    <script type="module" src="./popup.jsx"></script>
   </body>
 </html>
