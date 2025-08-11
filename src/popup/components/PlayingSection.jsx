@@ -25,9 +25,7 @@ const InactiveSection = () => {
   // Request memory data from background script
   const requestMemoryData = async () => {
     return new Promise((resolve) => {
-      console.log("Popup: Requesting CPU data...");
       chrome.runtime.sendMessage({ action: "getMemoryUsage" }, (response) => {
-        console.log("Popup: CPU response received:", response);
         if (response && response.memoryData) {
           resolve(response.memoryData);
         } else if (response && response.error) {
@@ -44,7 +42,6 @@ const InactiveSection = () => {
   const testProcessesAPI = async () => {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ action: "testProcesses" }, (response) => {
-        console.log("Processes API test result:", response);
         resolve(response);
       });
     });
@@ -57,7 +54,6 @@ const InactiveSection = () => {
 
       // Test processes API first
       const testResult = await testProcessesAPI();
-      console.log("Processes API test:", testResult);
 
       // Get inactive tabs from storage
       const { inactiveTabs = [] } = await chrome.storage.local.get(
@@ -66,7 +62,6 @@ const InactiveSection = () => {
 
       // Get memory usage data from background
       const memoryData = await requestMemoryData();
-      console.log("Memory data received:", memoryData); // Debug log
 
       // Get all tabs and filter by inactive ones
       const tabs = await chrome.tabs.query({});
@@ -87,7 +82,6 @@ const InactiveSection = () => {
 
           // Get memory info for this tab - now it's a plain object
           const memoryInfo = memoryData[tab.id];
-          console.log(`Tab ${tab.id} (${tab.title}) CPU data:`, memoryInfo);
 
           return {
             id: tab.id,
@@ -102,7 +96,6 @@ const InactiveSection = () => {
         })
         .sort((a, b) => (b.memory?.cpu || 0) - (a.memory?.cpu || 0)); // Sort by CPU usage (highest first)
 
-      console.log("Final inactive tabs data:", inactiveTabsData); // Debug log
       setInactiveTabs(inactiveTabsData);
     } catch (error) {
       console.error("Error loading inactive tabs with memory:", error);

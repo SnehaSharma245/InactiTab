@@ -25,9 +25,7 @@ const InactiveSection = () => {
   // Request memory data from background script
   const requestMemoryData = async () => {
     return new Promise((resolve) => {
-      console.log("Popup: Requesting CPU data...");
       chrome.runtime.sendMessage({ action: "getMemoryUsage" }, (response) => {
-        console.log("Popup: CPU response received:", response);
         if (response && response.memoryData) {
           resolve(response.memoryData);
         } else if (response && response.error) {
@@ -44,7 +42,6 @@ const InactiveSection = () => {
   const testProcessesAPI = async () => {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ action: "testProcesses" }, (response) => {
-        console.log("Processes API test result:", response);
         resolve(response);
       });
     });

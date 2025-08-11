@@ -31,8 +31,6 @@ const ProtectedSection = () => {
         "protectedTabs"
       );
 
-      console.log("Protected tabs from storage:", protectedTabs);
-
       // Ensure original favicons are shown in popup
       const tabsWithOriginalFavicons = protectedTabs.map((tab) => {
         let originalFavicon = tab.favIconUrl;
