@@ -1,11 +1,11 @@
 {
   "name": "inactitab-manager",
+  "type": "module",
   "version": "2.0.0",
   "description": "Manage inactive tabs with smart whitelist and customizable settings",
   "scripts": {
-    "build": "webpack --mode=production",
-    "dev": "webpack --mode=development --watch",
-    "start": "webpack serve --mode=development"
+    "dev": "vite",
+    "build": "vite build"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -19,18 +19,13 @@
     "tw-animate-css": "^1.3.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.0",
-    "@babel/preset-env": "^7.22.0",
-    "@babel/preset-react": "^7.22.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.16",
-    "babel-loader": "^9.1.0",
-    "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.8.0",
     "postcss": "^8.4.31",
     "postcss-loader": "^7.3.3",
     "style-loader": "^3.3.0",
     "tailwindcss": "^3.3.5",
-    "webpack": "^5.88.0",
-    "webpack-cli": "^5.1.0"
+    "vite": "^7.1.1"
   }
 }
